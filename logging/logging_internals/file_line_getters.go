@@ -5,7 +5,7 @@ import (
 	"io"
 	"os"
 
-	"fileserver/pkg/util"
+	"github.com/1f604/util"
 )
 
 // This function returns the last non-empty line in the file

@@ -1,10 +1,11 @@
 package util_test
 
 import (
-	"fileserver/pkg/util"
-	web_types "fileserver/pkg/util/web_types"
 	"fmt"
 	"testing"
+
+	"github.com/1f604/util"
+	web_types "github.com/1f604/util/web_types"
 )
 
 func run_test4[T SUCCESS | ERROR](t *testing.T, input string, expected_result T) {

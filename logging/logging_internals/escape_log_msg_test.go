@@ -1,10 +1,11 @@
 package util_test
 
 import (
-	"fileserver/pkg/util"
 	"testing"
 
-	logging_internals "fileserver/pkg/util/logging/logging_internals"
+	"github.com/1f604/util"
+
+	logging_internals "github.com/1f604/util/logging/logging_internals"
 )
 
 func Test_Encode_log_msg(t *testing.T) {

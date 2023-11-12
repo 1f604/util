@@ -8,7 +8,7 @@ import (
 	"errors"
 	"time"
 
-	json_internals "fileserver/pkg/util/json/json_internals"
+	json_internals "github.com/1f604/util/json/json_internals"
 )
 
 type PosixValidatedFullURLPath_t struct {

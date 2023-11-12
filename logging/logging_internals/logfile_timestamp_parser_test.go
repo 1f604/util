@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	. "fileserver/pkg/util"
-	util "fileserver/pkg/util/logging/logging_internals"
+	. "github.com/1f604/util"
+	util "github.com/1f604/util/logging/logging_internals"
 )
 
 // hooray for generics!!!

@@ -15,9 +15,9 @@ import (
 	"sync"
 	"time"
 
-	"fileserver/pkg/util"
-	logging_internals "fileserver/pkg/util/logging/logging_internals"
-	web_types "fileserver/pkg/util/web_types"
+	"github.com/1f604/util"
+	logging_internals "github.com/1f604/util/logging/logging_internals"
+	web_types "github.com/1f604/util/web_types"
 )
 
 func create_logging_dir_if_not_exists(logging_dir string) {

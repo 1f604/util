@@ -1,10 +1,11 @@
 package util
 
 import (
-	"fileserver/pkg/util"
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/1f604/util"
 )
 
 func Encode_log_msg(dangerous_bytes []byte) []byte {

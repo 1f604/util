@@ -1,13 +1,14 @@
 package util_test
 
 import (
-	util "fileserver/pkg/util"
-	json "fileserver/pkg/util/json"
-	web_types "fileserver/pkg/util/web_types"
 	"fmt"
 	"reflect"
 	"runtime"
 	"testing"
+
+	util "github.com/1f604/util"
+	json "github.com/1f604/util/json"
+	web_types "github.com/1f604/util/web_types"
 )
 
 type RESULT struct {
