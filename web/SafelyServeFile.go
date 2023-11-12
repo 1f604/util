@@ -19,7 +19,7 @@ import (
 // I realize that the amount of logging in this function is not going to serve everyone's needs
 // So if you want more or less logging (or you want something else), then copy and modify it so that it does what you want.
 // This function has been manually tested to verify that it handles all edge cases correctly.
-// As a safety precaution, this function will refuse to serve files whose permissions are not set to 777.
+// As a safety precaution, this function will refuse to serve files whose xattr is not set to the expected value.
 func SafelyServeFile(w http.ResponseWriter, r *http.Request, url_to_dir_map web_types.URLPrefixToFileSystemDirectoryMap) { //nolint:funlen // it's fine
 	Nginx_Log_Received_Request(r)
 
