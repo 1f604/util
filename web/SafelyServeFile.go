@@ -14,12 +14,11 @@ import (
 )
 
 // The user supplies a map of URL prefix to file system directory paths to the server and the server will map each URL, replacing the prefix with the file system directory path from the map.
-// As a safety precaution, the SafelyServeFile function will refuse to serve any files which does not have the xattr set. It will also refuse to list directories.
+// As a safety precaution, the SafelyServeFile function will refuse to serve any files which does not have the correct xattr set. It will also refuse to list directories.
 //
 // I realize that the amount of logging in this function is not going to serve everyone's needs
 // So if you want more or less logging (or you want something else), then copy and modify it so that it does what you want.
 // This function has been manually tested to verify that it handles all edge cases correctly.
-// As a safety precaution, this function will refuse to serve files whose xattr is not set to the expected value.
 func SafelyServeFile(w http.ResponseWriter, r *http.Request, url_to_dir_map web_types.URLPrefixToFileSystemDirectoryMap) { //nolint:funlen // it's fine
 	Nginx_Log_Received_Request(r)
 
