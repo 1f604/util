@@ -1,4 +1,4 @@
-module util
+module github.com/1f604/util
 
 go 1.18 // because we're using generics
 

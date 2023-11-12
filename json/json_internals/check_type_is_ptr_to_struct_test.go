@@ -3,8 +3,8 @@ package util_test
 import (
 	"testing"
 
-	"fileserver/pkg/util"
-	json "fileserver/pkg/util/json/json_internals"
+	"github.com/1f604/util"
+	json "github.com/1f604/util/json/json_internals"
 )
 
 func Test_Check_type_is_ptr_to_struct(t *testing.T) {

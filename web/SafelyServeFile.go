@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"fileserver/pkg/util"
-	web_types "fileserver/pkg/util/web_types"
+	"github.com/1f604/util"
+	web_types "github.com/1f604/util/web_types"
 )
 
 // The user supplies a map of URL prefix to file system directory paths to the server and the server will map each URL, replacing the prefix with the file system directory path from the map.

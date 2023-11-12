@@ -1,9 +1,10 @@
 package util
 
 import (
-	web_types "fileserver/pkg/util/web_types"
 	"log"
 	"net/http"
+
+	web_types "github.com/1f604/util/web_types"
 )
 
 /*

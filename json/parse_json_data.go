@@ -5,8 +5,8 @@ import (
 	"io"
 	"os"
 
-	"fileserver/pkg/util"
-	json_internals "fileserver/pkg/util/json/json_internals"
+	"github.com/1f604/util"
+	json_internals "github.com/1f604/util/json/json_internals"
 )
 
 // constructor functions take no argument and return a struct pointer.

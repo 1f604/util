@@ -3,8 +3,9 @@ package util_test
 import (
 	"testing"
 
-	"fileserver/pkg/util"
-	json "fileserver/pkg/util/json"
+	json "github.com/1f604/util/json"
+
+	"github.com/1f604/util"
 )
 
 type T1 struct {

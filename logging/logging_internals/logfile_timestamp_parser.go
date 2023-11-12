@@ -2,9 +2,10 @@ package util
 
 import (
 	"errors"
-	"fileserver/pkg/util"
 	"strings"
 	"time"
+
+	"github.com/1f604/util"
 )
 
 func Try_parse_log_file_line(line string) (time.Time, error) {

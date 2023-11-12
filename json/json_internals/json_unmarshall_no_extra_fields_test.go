@@ -3,8 +3,8 @@ package util_test
 import (
 	"testing"
 
-	. "fileserver/pkg/util"
-	util "fileserver/pkg/util/json/json_internals"
+	. "github.com/1f604/util"
+	util "github.com/1f604/util/json/json_internals"
 )
 
 type UserStruct struct {

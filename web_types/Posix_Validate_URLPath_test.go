@@ -1,12 +1,13 @@
 package util_test
 
 import (
-	"fileserver/pkg/util"
 	"fmt"
 	"path/filepath"
 	"testing"
 
-	web_types "fileserver/pkg/util/web_types"
+	"github.com/1f604/util"
+
+	web_types "github.com/1f604/util/web_types"
 )
 
 func run_test2[T SUCCESS | ERROR_DIR | ERROR_FILENAME | ERROR_DOT](t *testing.T, input string, expected_result T) {

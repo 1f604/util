@@ -6,9 +6,9 @@ import (
 	"os"
 	"testing"
 
-	"fileserver/pkg/util"
-	. "fileserver/pkg/util"
-	logging_internals "fileserver/pkg/util/logging/logging_internals"
+	"github.com/1f604/util"
+	. "github.com/1f604/util"
+	logging_internals "github.com/1f604/util/logging/logging_internals"
 )
 
 type (
