@@ -23,8 +23,8 @@ func SafelyServeFile(w http.ResponseWriter, r *http.Request, url_to_dir_map web_
 	Nginx_Log_Received_Request(r)
 
 	if r.Method != http.MethodGet { // we only support HTTP GET requests
-		log.Print("Method not supported.")
-		http.Error(w, "Method not supported.", http.StatusBadRequest)
+		log.Print("Method not allowed.")
+		http.Error(w, "Method not allowed.", http.StatusMethodNotAllowed)
 		return
 	}
 
