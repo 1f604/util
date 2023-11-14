@@ -113,7 +113,6 @@ func (mux *LongestPrefixRouter) match(path string) http.Handler {
 	// First try to find an exact match
 	result, ok := mux.exact_match_handlers[path]
 	if ok {
-		fmt.Println("exact matched!")
 		return result
 	}
 
@@ -121,15 +120,11 @@ func (mux *LongestPrefixRouter) match(path string) http.Handler {
 	var best_match *HandlerPair = nil
 	for _, mux_entry := range mux.prefix_handlers {
 		if strings.HasPrefix(path, mux_entry.prefix) && best_match.Length() < mux_entry.Length() {
-			fmt.Println("path", path, "mux_entry.prefix", mux_entry.prefix)
 			best_match = mux_entry
 		}
 	}
 	if best_match != nil {
-		fmt.Println("Best match:", best_match.prefix)
 		return best_match.handler
-	} else {
-		fmt.Println("Best match is nil.")
 	}
 	return mux.fallbackHandler
 }
