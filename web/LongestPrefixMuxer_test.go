@@ -6,39 +6,44 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/1f604/util"
 	web "github.com/1f604/util/web"
 )
 
 func handle_hello(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("hello!")) //nolint
+	w.Write([]byte("hello!")) //nolint: errcheck // no need to check error here
+}
+
+func handle_hello_exact(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("hello exact!")) //nolint: errcheck // no need to check error here
 }
 
 func handle_helloworld(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("hello world!")) //nolint
+	w.Write([]byte("hello world!")) //nolint: errcheck // no need to check error here
 }
 
 func handle_helloworldagain(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("hello world again!")) //nolint
+	w.Write([]byte("hello world again!")) //nolint: errcheck // no need to check error here
 }
 
 func fallback_handler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("fallback!")) //nolint
+	w.Write([]byte("fallback!")) //nolint: errcheck // no need to check error here
 }
 
 func Test_LongestPrefixMuxer(t *testing.T) {
 	t.Parallel()
 
 	mux_entries := []*web.MuxEntry{
-		web.NewMuxEntry(handle_hello, "/hello"),
-		web.NewMuxEntry(handle_helloworldagain, "/helloworldagain"),
-		web.NewMuxEntry(handle_helloworld, "/helloworld"),
+		web.NewMuxEntry(handle_hello_exact, "/hello", util.EXACT_MATCH_HANDLER),
+		web.NewMuxEntry(handle_hello, "/hello", util.LONGEST_PREFIX_HANDLER),
+		web.NewMuxEntry(handle_helloworldagain, "/helloworldagain", util.LONGEST_PREFIX_HANDLER),
+		web.NewMuxEntry(handle_helloworld, "/helloworld", util.LONGEST_PREFIX_HANDLER),
 	}
 	newmuxer := web.NewLongestPrefixRouter(mux_entries, fallback_handler)
 
 	run_test := func(path string, expected_output string) {
-
 		rr := httptest.NewRecorder()
-		req, err := http.NewRequest("GET", path, nil)
+		req, err := http.NewRequest(http.MethodGet, path, nil) //nolint: noctx // dont need a context here.
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -55,7 +60,7 @@ func Test_LongestPrefixMuxer(t *testing.T) {
 
 	run_test("/hel.lo/", "MyCustomMuxer says: Invalid URL path.\n")
 
-	run_test("/hello", "hello!")
+	run_test("/hello", "hello exact!")
 	run_test("/hello/", "hello!")
 	run_test("/helloa", "hello!")
 	run_test("/helloworl", "hello!")
