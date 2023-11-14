@@ -58,6 +58,9 @@ func IsValidURL(url_path string) bool { // Accept paths like "/", "/root/", and 
 // ServeHTTP dispatches the request to the handler whose
 // pattern most closely matches the RequestURI.
 func (mux *LongestPrefixRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// log request
+	Nginx_Log_Received_Request(r)
+
 	// Reject invalid URL paths
 	if !IsValidURL(r.URL.Path) {
 		log.Printf("URL path %s is invalid.", r.URL.Path)
