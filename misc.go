@@ -111,6 +111,7 @@ func String_to_int64(s string) (int64, error) {
 }
 
 // this function assumes file pointer is valid.
+// We could probably make this more efficient by calculating the file size in-process instead of making syscall each time.
 func Get_file_size(f *os.File) int64 {
 	fi, err := f.Stat()
 	if err != nil {
