@@ -7,9 +7,11 @@ package util
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -26,23 +28,25 @@ func create_logging_dir_if_not_exists(logging_dir string) {
 }
 
 type RotateWriter struct {
-	lock              sync.Mutex
-	maxfilesize_bytes int64 // maximum allowed size of a log file in bytes
-	filename          string
-	logfiledir        string
-	logfileprefix     string
-	fp                *os.File
+	lock                    sync.Mutex
+	maxfilesize_bytes       int64 // maximum allowed size of a log file in bytes
+	DirectorySizeLimitBytes int64
+	LogFilePath             string
+	logfiledir              string
+	logfileprefix           string
+	fp                      *os.File
 }
 
 // Make a new RotateWriter. Return nil if error occurs during setup.
-func NewRotateWriter(filename string, loggingdir string, logfileprefix string, maxfilesize_bytes int64) *RotateWriter {
+func NewRotateWriter(logfilepath string, loggingdir string, logfileprefix string, maxfilesize_bytes int64, directorymaxsize_bytes int64) *RotateWriter {
 	// Try to create the log file
-	fp, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0o644) // open in append mode, create if not already exist
+	fp, err := os.OpenFile(logfilepath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0o644) // open in append mode, create if not already exist
 	if err != nil {
 		panic("ERROR: FAILED TO OPEN/CREATE NEW LOG FILE!!!")
 	}
 
-	w := &RotateWriter{lock: sync.Mutex{}, filename: filename, logfiledir: loggingdir, logfileprefix: logfileprefix, maxfilesize_bytes: maxfilesize_bytes, fp: fp}
+	w := &RotateWriter{lock: sync.Mutex{}, LogFilePath: logfilepath, logfiledir: loggingdir, logfileprefix: logfileprefix, maxfilesize_bytes: maxfilesize_bytes,
+		DirectorySizeLimitBytes: directorymaxsize_bytes, fp: fp}
 	return w
 }
 
@@ -105,6 +109,7 @@ func (w *RotateWriter) get_new_filename() string {
 	firstline, err := logging_internals.Get_first_line_from_file(w.fp)
 	if err != nil {
 		fmt.Println("FAILED TO GET FIRST LINE FROM FILE", err) // can't print to log here because we are already in the logging function
+		panic(err)
 		failed_getting_timestamps = true
 	}
 	lastline, err := logging_internals.Get_last_nonempty_line_from_file(w.fp)
@@ -140,6 +145,83 @@ func (w *RotateWriter) get_new_filename() string {
 	return newfilename
 }
 
+// This struct is copied from LogFileDeleter.go
+type FileEntry struct {
+	FilePath    string
+	FileInfo    fs.FileInfo
+	TimeCreated time.Time
+}
+
+// This function is copied from LogFileDeleter.go
+func try_get_timestamp_from_filename(filename string) time.Time {
+	firstpart, _, found := strings.Cut(filename, "$$")
+	if !found {
+		panic("File does not contain $$: " + filename)
+	}
+	result, err := util.String_to_int64(firstpart)
+	if err != nil {
+		panic("First part of file name is not a number")
+	}
+	if result < 1699737340 { //nolint: gomnd // see msg
+		panic("File unix timestamp is in the past")
+	}
+	if result > 569724873339 { //nolint: gomnd // see msg
+		panic("File unix timestamp is beyond the year 20,000")
+	}
+	return time.Unix(result, 0)
+}
+
+// This function is copied from LogFileDeleter.go
+// DO NOT CALL log.Print from this function - it will result in infinite recursion thus causing the program to get stuck for no apparent reason.
+func (w *RotateWriter) delete_Excess_Files() {
+	// First, get a list of files in the directory
+	entries, err := os.ReadDir(w.logfiledir)
+	if err != nil {
+		panic(err)
+	}
+
+	file_entries := []FileEntry{}
+	var total_directory_size int64 = 0
+
+	current_log_filename := filepath.Base(w.LogFilePath)
+	for _, e := range entries {
+		if e.IsDir() { // ignore directories
+			continue
+		}
+		if e.Name() == current_log_filename {
+			continue
+		}
+		time_file_created := try_get_timestamp_from_filename(e.Name())
+		file_info, err1 := e.Info()
+		util.Check_err(err1)
+
+		total_directory_size += file_info.Size()
+
+		file_entries = append(file_entries, FileEntry{FilePath: filepath.Join(w.logfiledir, e.Name()), FileInfo: file_info, TimeCreated: time_file_created})
+
+		// fmt.Println(e.Name())
+	}
+	// fmt.Println("total_directory_size:", total_directory_size)
+	sort.Slice(file_entries, func(i, j int) bool {
+		return file_entries[i].TimeCreated.Before(file_entries[j].TimeCreated)
+	})
+	// the file_entries is sorted from earliest to latest, so first entry is the oldest file so we start deleting from there
+	// while total size is greater than desired, delete
+
+	for i := 0; total_directory_size > w.DirectorySizeLimitBytes; i++ {
+		// try delete
+		file_entry := file_entries[i]
+		size_of_file_deleted := file_entry.FileInfo.Size()
+		err1 := os.Remove(file_entry.FilePath)
+		util.Check_err(err1)
+		total_directory_size -= size_of_file_deleted
+		// fmt.Println("Log file deleted:", file_entry.FilePath)
+		// fmt.Println("total_directory_size:", total_directory_size)
+	}
+
+	// fmt.Println(file_entries)
+}
+
 // Perform the actual act of creating a new file and closing the existing file.
 // Panics if anything goes wrong.
 func (w *RotateWriter) Rotate() {
@@ -162,19 +244,22 @@ func (w *RotateWriter) Rotate() {
 	}
 
 	// Rename current log file.
-	err = os.Rename(w.filename, newfilename)
+	err = os.Rename(w.LogFilePath, newfilename)
 	if err != nil {
 		panic("ERROR: FAILED TO RENAME LOG FILE!!!")
 	}
 
 	// Create a new log file.
-	w.fp, err = os.Create(w.filename)
+	w.fp, err = os.Create(w.LogFilePath)
 	if err != nil {
 		panic("ERROR: FAILED TO CREATE NEW LOG FILE!!!")
 	}
+
+	// Delete excess files.
+	w.delete_Excess_Files()
 }
 
-func Set_up_logging_panic_on_err(logging_dir string, filename string, logfileprefix string, maxlogfilesize_bytes int64) {
+func Set_up_logging_panic_on_err(logging_dir string, filename string, logfileprefix string, maxlogfilesize_bytes int64, directorymaxsize_bytes int64) {
 	create_logging_dir_if_not_exists(logging_dir)
 	// check log file name
 	err := web_types.Posix_filename_validator(filename)
@@ -189,7 +274,7 @@ func Set_up_logging_panic_on_err(logging_dir string, filename string, logfilepre
 	filename = filepath.Base(filename)
 	// use proper path combination
 	logfilepath := filepath.Join(logging_dir, filename)
-	logger := NewRotateWriter(logfilepath, logging_dir, logfileprefix, maxlogfilesize_bytes)
+	logger := NewRotateWriter(logfilepath, logging_dir, logfileprefix, maxlogfilesize_bytes, directorymaxsize_bytes)
 	log.SetFlags(log.Llongfile) // tell the logger to only log the file name where the log.print function is called, we'll add in the date manually.
 
 	log.SetOutput(logger)
