@@ -4,9 +4,11 @@
 package util
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
+	"runtime"
 	"strconv"
 	"sync"
 	"time"
@@ -136,4 +138,27 @@ func Getxattr(path string, name string, data []byte) (int, error) {
 
 func Setxattr(path string, name string, data []byte, flags int) error {
 	return unix.Setxattr(path, name, data, flags)
+}
+
+// PrintMemUsage outputs the current, total and OS memory being used. As well as the number
+// of garage collection cycles completed.
+func PrintMemUsage() {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	// For info on each, see: https://golang.org/pkg/runtime/#MemStats
+	fmt.Printf("Alloc = %v MiB", bToMb(m.Alloc))
+	fmt.Printf("\tTotalAlloc = %v MiB", bToMb(m.TotalAlloc))
+	fmt.Printf("\tSys = %v MiB", bToMb(m.Sys))
+	fmt.Printf("\tNumGC = %v\n", m.NumGC)
+}
+
+func bToMb(b uint64) uint64 {
+	return b / 1024 / 1024
+}
+
+func Copy_Slice_Into_150_Arr(slice []byte, arr [150]byte) {
+	minlen := min(len(arr), len(slice))
+	for i := 0; i < minlen; i++ {
+		arr[i] = slice[i]
+	}
 }
