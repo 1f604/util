@@ -82,3 +82,16 @@ func Assert_result_equals_bool(t *testing.T, actual bool, err error, expected bo
 		t.Fatal("Line number:", line_number, "Fail. Booleans not equal. Expected:", expected, "got:", actual)
 	}
 }
+
+func Assert_result_equals_interface(t *testing.T, actual interface{}, err error, expected interface{}, skip_level int) {
+	t.Helper()
+
+	_, _, line_number, _ := runtime.Caller(skip_level)
+
+	if err != nil {
+		t.Fatal("Line number:", line_number, "Fail. Expected no error, got", err.Error())
+	}
+	if actual != expected {
+		t.Fatal("Line number:", line_number, "Fail. Interfaces not equal. Expected:", expected, "got:", actual)
+	}
+}
