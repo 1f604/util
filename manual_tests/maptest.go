@@ -33,20 +33,21 @@ func main() {
 
 	value_string := strings.Repeat("#", 128)
 
-	for j := 10; j < 20; j++ {
+	for j := 0; j < 10; j++ {
 		for i := 0; i < 1000000; i++ {
-			keystr := util.Int64_to_string(int64(j)) + "$" + util.Int64_to_string(int64(i))
-			valstr := keystr + "$$" + value_string
+			keystr := int64(i*10 + j) //util.Int64_to_string(int64(j)) + "$" + util.Int64_to_string(int64(i)) //
+			valstr := util.Int64_to_string(keystr) + "$$" + value_string
 			pairs = append(pairs, KVPair{
 				Key:              keystr,
 				Value:            valstr,
 				Expiry_time_unix: time.Now().Unix(),
 			})
 		}
+		// Force GC to clear up, should see a memory drop
+		runtime.GC()
 	}
-	// Force GC to clear up, should see a memory drop
-	runtime.GC()
 
+	testmap := make(map[int64]string, 8000000)
 	start := time.Now()
 	/*
 		var wg sync.WaitGroup
@@ -56,7 +57,11 @@ func main() {
 		}
 		wg.Wait()
 	*/
-	util.NewConcurrentExpiringMapFromSlice(pairs)
+	for _, pair := range pairs {
+		testmap[pair.Key.(int64)] = pair.Value.(string)
+	}
+
+	//util.NewConcurrentExpiringMapFromSlice(pairs)
 	fmt.Println("Time elapsed:", time.Now().Sub(start))
 
 }

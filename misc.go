@@ -4,8 +4,10 @@
 package util
 
 import (
+	"crypto/rand"
 	"fmt"
 	"log"
+	"math/big"
 	"os"
 	"os/exec"
 	"runtime"
@@ -161,4 +163,82 @@ func Copy_Slice_Into_150_Arr(slice []byte, arr [150]byte) {
 	for i := 0; i < minlen; i++ {
 		arr[i] = slice[i]
 	}
+}
+
+// This function works, I've manually tested it.
+// Returns integers from 0 up to AND NOT INCLUDING max
+func Crypto_Randint(max int) (int, error) {
+	val, err := rand.Int(rand.Reader, big.NewInt(int64(max)))
+	if err != nil {
+		return 0, err
+	}
+	return int(val.Int64()), nil
+}
+
+/* Custom error types */
+type CryptoRandomChoiceEmptySliceError struct{}
+
+func (e CryptoRandomChoiceEmptySliceError) Error() string {
+	return "Crypto_Random_Choice Error: Input slice is of length zero"
+}
+
+// This function works, I've manually tested it.
+func Crypto_Random_Choice[T any](arr *[]T) (T, error) { //nolint:ireturn // why is this not okay
+	// This function HAS TO BE generic because converting slice of interface{} is O(N) time because it has to convert every element in the slice!!!
+	// return the zero value for T
+	var zero_value T
+	n := len(*arr)
+	if n == 0 {
+		return zero_value, CryptoRandomChoiceEmptySliceError{}
+	}
+	idx, err := Crypto_Randint(n)
+	if err != nil {
+		return zero_value, err
+	}
+	return (*arr)[idx], nil
+}
+
+// calculates a to the power of b mod m. If m is 0 then just returns a to the power of b.
+// This function seems to create a memory leak, but it doesn't.
+// Anyway, it's better to use custom power
+func Power_Slow(a, b, m int) int {
+	result := new(big.Int).Exp(
+		big.NewInt(int64(a)),
+		big.NewInt(int64(b)),
+		big.NewInt(int64(m)),
+	)
+	return int(result.Int64())
+}
+
+// Naive algorithm, only suitable for small b.
+func Power_Naive(a, b int) int {
+	// VERY IMPORTANT special case this fucked me up good
+	if b == 0 {
+		return 1
+	}
+	multiplier := a
+	for i := 1; i < b; i++ {
+		a *= multiplier
+	}
+	return a
+}
+
+func ReverseString(s string) string {
+	chars := []rune(s)
+	for i, j := 0, len(chars)-1; i < j; i, j = i+1, j-1 {
+		chars[i], chars[j] = chars[j], chars[i]
+	}
+	return string(chars)
+}
+
+func Divmod(numerator, denominator int) (int, int) {
+	quotient := numerator / denominator // integer division, decimals are truncated
+	remainder := numerator % denominator
+	return quotient, remainder
+}
+
+func ReplaceString(str string, replacement rune, index int) string {
+	out := []byte(str)
+	out[index] = byte(replacement)
+	return string(out)
 }
