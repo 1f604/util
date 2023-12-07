@@ -1,4 +1,5 @@
 // Map with expiring entries
+// For slightly better performance, replace map[string]string with map[int64]string. See https://www.komu.engineer/blogs/01/go-gc-maps
 // Memory usage can be more than double what you actually store in it.
 // Based on my own testing, storing 10 million 128 byte URLs will take around 3.6GB of RAM, so each 128 byte URL took around 360 bytes of RAM.
 // Entries can only be inserted, they cannot be updated or deleted before they expire.
@@ -36,22 +37,26 @@ type ExpiringMapItem struct {
 	expiry_time_unix int64 // When the item expires. This is used as the priority. Doesn't have to be unix time.
 }
 
+type ExpiryCallback func(interface{})
+
 // keys are strings
 type ConcurrentExpiringMap struct {
-	mut sync.Mutex
-	m   map[interface{}]ExpiringMapItem
-	hq  ExpiringHeapQueue
+	mut             sync.Mutex
+	m               map[interface{}]ExpiringMapItem
+	hq              ExpiringHeapQueue
+	expiry_callback ExpiryCallback
 }
 
-func NewEmptyConcurrentExpiringMap() *ConcurrentExpiringMap {
+func NewEmptyConcurrentExpiringMap(expiry_callback ExpiryCallback) *ConcurrentExpiringMap {
 	m := make(map[interface{}]ExpiringMapItem, 0)
 	hq := make(ExpiringHeapQueue, 0)
 	// heap.Init(&hq) // No need to initialize an empty heap.
 
 	return &ConcurrentExpiringMap{
-		mut: sync.Mutex{},
-		m:   m,
-		hq:  hq,
+		mut:             sync.Mutex{},
+		m:               m,
+		hq:              hq,
+		expiry_callback: expiry_callback,
 	}
 }
 
@@ -94,7 +99,7 @@ type CEMItem struct {
 
 // batched mode for fast loading from disk
 // Takes around 3.5s to load 10 million items, 300ms for loading 1 million items
-func NewConcurrentExpiringMapFromSlice(kv_pairs []CEMItem) *ConcurrentExpiringMap {
+func NewConcurrentExpiringMapFromSlice(expiry_callback ExpiryCallback, kv_pairs []CEMItem) *ConcurrentExpiringMap {
 	m := make(map[interface{}]ExpiringMapItem, len(kv_pairs))
 	hq := make(ExpiringHeapQueue, 0, len(kv_pairs))
 
@@ -125,9 +130,10 @@ func NewConcurrentExpiringMapFromSlice(kv_pairs []CEMItem) *ConcurrentExpiringMa
 	// fmt.Printf("New heap: %+v\n", cem.hq)
 
 	return &ConcurrentExpiringMap{
-		mut: sync.Mutex{},
-		m:   m,
-		hq:  hq,
+		mut:             sync.Mutex{},
+		m:               m,
+		hq:              hq,
+		expiry_callback: expiry_callback,
 	}
 }
 
@@ -145,6 +151,10 @@ func (cem *ConcurrentExpiringMap) Remove_All_Expired(extra_keeparound_seconds in
 		item, ok := heap_item.(*ExpiringHeapItem)
 		if !ok {
 			panic("Expected ExpiringHeapItem, got something else. This should never happen.")
+		}
+		// now call the callback with the removed item key
+		if cem.expiry_callback != nil {
+			cem.expiry_callback(item.key)
 		}
 		// then remove from map
 		delete(cem.m, item.key)
