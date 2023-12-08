@@ -63,7 +63,7 @@ func NewMuxEntry(hostname string, handler http.HandlerFunc, prefix string, handl
 	_, ok := handler_type.(util.LONGEST_PREFIX_HANDLER_t)
 	if ok {
 		if prefix[len(prefix)-1] != '/' {
-			log.Fatalf("Error: Longest prefix %s does not begin with /", prefix)
+			log.Fatalf("Error: Longest prefix %s does not end with /", prefix)
 			panic("Error: Longest prefix must end end with /")
 		}
 	}
