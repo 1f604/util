@@ -145,32 +145,33 @@ func SafelyServeFileEmbedded(w http.ResponseWriter, r *http.Request, url_prefix 
 		http.Error(w, "URL prefix is invalid.", http.StatusInternalServerError)
 		return
 	}
-	// Now remove the prefix from the string
-	short_urlpath_str := urlpath_str[len(url_prefix):]
-
-	// Now map it to fs path
-	fs_path := fs_prefix + short_urlpath_str
 
 	// Validate fs path
-	posix_validated_fs_path, err := web_types.PosixValidatedFullURLPath(fs_path)
-	if err != nil || posix_validated_fs_path == nil {
+	posix_validated_url_path, err := web_types.PosixValidatedFullURLPath(urlpath_str)
+	if err != nil || posix_validated_url_path == nil {
 		// return a BadRequest error saying the URL path was not valid
 		log.Printf("URL path %s is invalid. Error: %v", urlpath_str, err)
 		http.Error(w, "Invalid URL path.", http.StatusBadRequest)
 		return
 	}
 
+	// Now remove the prefix from the string
+	short_urlpath_str := urlpath_str[len(url_prefix):]
+
+	// Now map it to fs path
+	fs_path := fs_prefix + short_urlpath_str
+
 	// Last minute sanity check
-	dirpath, _ := filepath.Split(posix_validated_fs_path.URLPath)
+	dirpath, _ := filepath.Split(fs_path)
 	if strings.Contains(dirpath, ".") {
-		log.Printf("Panic: URL path %s contains a dot.", dirpath)
+		log.Printf("Panic: fs_path %s contains a dot.", dirpath)
 		panic("This should never happen.")
 	}
 
 	// Now open the file
-	log.Printf("URL path %s maps to file system path %s", urlpath_str, posix_validated_fs_path.URLPath)
-	log.Printf("Now opening file %s", posix_validated_fs_path.URLPath)
-	f, err := embedfs.Open(posix_validated_fs_path.URLPath)
+	log.Printf("URL path %s maps to file system path %s", urlpath_str, fs_path)
+	log.Printf("Now opening file %s", fs_path)
+	f, err := embedfs.Open(fs_path)
 	if err != nil {
 		log.Print("Failed to open file:", err)
 		http.Error(w, "Failed to open file.", http.StatusNotFound)
@@ -186,6 +187,6 @@ func SafelyServeFileEmbedded(w http.ResponseWriter, r *http.Request, url_prefix 
 	}
 
 	// ServeContent will check modification time
-	log.Printf("Now serving file %s", posix_validated_fs_path.URLPath)
+	log.Printf("Now serving file %s", fs_path)
 	http.ServeContent(w, r, d.Name(), d.ModTime(), f.(io.ReadSeeker))
 }
