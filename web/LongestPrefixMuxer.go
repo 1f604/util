@@ -53,6 +53,21 @@ type longestPrefixRouterInternals struct {
 }
 
 func NewMuxEntry(hostname string, handler http.HandlerFunc, prefix string, handler_type util.HandlerTypeEnum) *MuxEntry {
+	// check prefix starts with "/"
+	if prefix[0] != '/' {
+		log.Fatalf("Error: Prefix %s does not begin with /", prefix)
+		panic("Error: Prefix does not begin with /")
+	}
+
+	// check prefix ends with / if it's a longest prefix handler
+	_, ok := handler_type.(util.LONGEST_PREFIX_HANDLER_t)
+	if ok {
+		if prefix[len(prefix)-1] != '/' {
+			log.Fatalf("Error: Longest prefix %s does not begin with /", prefix)
+			panic("Error: Longest prefix must end end with /")
+		}
+	}
+
 	return &MuxEntry{
 		hostname:     hostname,
 		prefix:       prefix,
