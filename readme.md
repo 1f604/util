@@ -7,3 +7,9 @@ This library calls `panic` in a number of places so you may want to capture both
 ```
 go run ./fileserver/main.go 2>stderr.log 1>stdout.log
 ```
+
+To run all tests:
+
+```
+go test $(go list ./... | grep -v manual)
+```

@@ -14,15 +14,17 @@ import (
 // Consider HSTS if your clients are browsers.
 // I have manually tested this function and checked that it works whether your HTTP port is 80 or 8080.
 // It will correct redirect to the correct https address. It will strip away any ports so you can't use a custom HTTPS port.
-func RunRedirectHTTPToHTTPSServer(addr string, read_timeout time.Duration, write_timeout time.Duration, idle_timeout time.Duration) {
+func RunRedirectHTTPToHTTPSServer(addr string, read_timeout time.Duration, write_timeout time.Duration, idle_timeout time.Duration, log_request bool) {
 	srv := &http.Server{
 		Addr:         addr,
 		ReadTimeout:  read_timeout,
 		WriteTimeout: write_timeout,
 		IdleTimeout:  idle_timeout,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			log.Print("-------------------------NEW HTTP REQUEST----------------------------")
-			Nginx_Log_Received_Request(req)
+			if log_request {
+				log.Print("-------------------------NEW HTTP REQUEST----------------------------")
+				Nginx_Log_Received_Request("RunRedirectHTTPToHTTPSServer", req)
+			}
 			w.Header().Set("Connection", "close")
 			host, _, err := net.SplitHostPort(req.Host) // Check if HTTP port is non-default
 			if err != nil {                             // Assume port not in address

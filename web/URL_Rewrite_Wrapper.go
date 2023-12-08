@@ -19,10 +19,12 @@ func exampleMiddleware(next http.Handler) http.Handler {
 
 */
 
-func RedirectWrapper(handler http.Handler, scheme string, url_redirect_map web_types.URLRedirectMap) http.Handler {
+func RedirectWrapper(handler http.Handler, scheme string, url_redirect_map web_types.URLRedirectMap, log_request bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Print("------------------------REDIRECT WRAPPER: NEW HTTP REQUEST----------------------------")
-		Nginx_Log_Received_Request(r)
+		if log_request {
+			log.Print("------------------------REDIRECT WRAPPER: NEW HTTP REQUEST----------------------------")
+			Nginx_Log_Received_Request("RedirectWrapper", r)
+		}
 		matched, ok := (*url_redirect_map.Map)[r.URL.Path]
 		// If the key exists
 		if ok {

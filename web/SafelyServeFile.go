@@ -19,8 +19,10 @@ import (
 // I realize that the amount of logging in this function is not going to serve everyone's needs
 // So if you want more or less logging (or you want something else), then copy and modify it so that it does what you want.
 // This function has been manually tested to verify that it handles all edge cases correctly.
-func SafelyServeFile(w http.ResponseWriter, r *http.Request, url_to_dir_map web_types.URLPrefixToFileSystemDirectoryMap) { //nolint:funlen // it's fine
-	Nginx_Log_Received_Request(r)
+func SafelyServeFile(w http.ResponseWriter, r *http.Request, url_to_dir_map web_types.URLPrefixToFileSystemDirectoryMap, log_request bool) { //nolint:funlen // it's fine
+	if log_request {
+		Nginx_Log_Received_Request("SafelyServeFile", r)
+	}
 
 	if r.Method != http.MethodGet { // we only support HTTP GET requests
 		log.Print("Method not allowed.")
