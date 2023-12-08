@@ -3,7 +3,6 @@
 package util
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -132,9 +131,7 @@ func (mux *LongestPrefixRouter) ServeHTTP(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	fmt.Println("DEBUG1:", r.URL.Hostname(), "host:", r.URL.Host)
 	h := mux.match(r.URL.Hostname(), r.URL.Path) // Will return default handler if no match found
-	fmt.Println("DEBUG2:", r.URL.Hostname(), "host:", r.URL.Host)
 	h.ServeHTTP(w, r)
 }
 
