@@ -2,7 +2,9 @@ package util
 
 import (
 	"bytes"
+	"embed"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -111,4 +113,62 @@ func SafelyServeFile(w http.ResponseWriter, r *http.Request, url_to_dir_map web_
 	// ServeContent will check modification time
 	log.Printf("Now serving file %s", *convertedfspath.FileSystemPath)
 	http.ServeContent(w, r, d.Name(), d.ModTime(), f)
+}
+
+// Simple function for serving embedded files
+func SafelyServeFileEmbedded(w http.ResponseWriter, r *http.Request, embedfs embed.FS, log_request bool) { //nolint:funlen // it's fine
+	if log_request {
+		Nginx_Log_Received_Request("SafelyServeFileStatic", r)
+	}
+
+	if r.Method != http.MethodGet { // we only support HTTP GET requests
+		log.Print("Method not allowed.")
+		http.Error(w, "Method not allowed.", http.StatusMethodNotAllowed)
+		return
+	}
+
+	urlpath_str := r.URL.Path
+	log.Printf("Received request for %s", urlpath_str)
+
+	defer func() {
+		log.Print("Finished handling request.")
+	}()
+
+	// Validate URL path
+	posix_validated_url_path, err := web_types.PosixValidatedFullURLPath(urlpath_str)
+	if err != nil || posix_validated_url_path == nil {
+		// return a BadRequest error saying the URL path was not valid
+		log.Printf("URL path %s is invalid.", urlpath_str)
+		http.Error(w, "Invalid URL path.", http.StatusBadRequest)
+		return
+	}
+
+	// Last minute sanity check
+	dirpath, _ := filepath.Split(posix_validated_url_path.URLPath)
+	if strings.Contains(dirpath, ".") {
+		log.Printf("Panic: URL path %s contains a dot.", dirpath)
+		panic("This should never happen.")
+	}
+
+	// Now open the file
+	log.Printf("URL path %s maps to file system path %s", urlpath_str, posix_validated_url_path.URLPath)
+	log.Printf("Now opening file %s", posix_validated_url_path.URLPath)
+	f, err := embedfs.Open(posix_validated_url_path.URLPath)
+	if err != nil {
+		log.Print("Failed to open file:", err)
+		http.Error(w, "Failed to open file.", http.StatusNotFound)
+		return
+	}
+	defer f.Close()
+
+	d, err := f.Stat()
+	if err != nil {
+		log.Print("Failed to stat file:", err)
+		http.Error(w, "Failed to stat file.", http.StatusInternalServerError)
+		return
+	}
+
+	// ServeContent will check modification time
+	log.Printf("Now serving file %s", urlpath_str)
+	http.ServeContent(w, r, d.Name(), d.ModTime(), f.(io.ReadSeeker))
 }
