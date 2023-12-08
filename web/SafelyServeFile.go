@@ -155,7 +155,7 @@ func SafelyServeFileEmbedded(w http.ResponseWriter, r *http.Request, url_prefix 
 	posix_validated_fs_path, err := web_types.PosixValidatedFullURLPath(fs_path)
 	if err != nil || posix_validated_fs_path == nil {
 		// return a BadRequest error saying the URL path was not valid
-		log.Printf("URL path %s is invalid.", urlpath_str)
+		log.Printf("URL path %s is invalid. Error: %v", urlpath_str, err)
 		http.Error(w, "Invalid URL path.", http.StatusBadRequest)
 		return
 	}
