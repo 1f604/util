@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"math/big"
 	"time"
+
+	"github.com/1f604/util"
 )
 
 // Naive algorithm, only suitable for small b.
@@ -30,4 +32,15 @@ func main() {
 	start := time.Now()
 	fmt.Println(Power_Naive(2, 23))
 	fmt.Println(time.Now().Sub(start))
+
+	fmt.Println(util.Crypto_RandString(0))
+	fmt.Println(util.Crypto_RandString(0))
+	fmt.Println(util.Crypto_RandString(1))
+	fmt.Println(util.Crypto_RandString(1))
+	fmt.Println(util.Crypto_RandString(1))
+	fmt.Println(util.Crypto_RandString(2))
+	fmt.Println(util.Crypto_RandString(2))
+	fmt.Println(util.Crypto_RandString(2))
+	fmt.Println(util.Crypto_RandString(12))
+	fmt.Println(util.Crypto_RandString(12))
 }
