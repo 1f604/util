@@ -131,7 +131,7 @@ func (mux *LongestPrefixRouter) ServeHTTP(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	h := mux.match(r.URL.Hostname(), r.URL.Path) // Will return default handler if no match found
+	h := mux.match(r.Host, r.URL.Path) // Will return default handler if no match found
 	h.ServeHTTP(w, r)
 }
 
