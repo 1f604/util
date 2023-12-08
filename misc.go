@@ -4,6 +4,8 @@
 package util
 
 import (
+	b64 "encoding/base64"
+
 	"crypto/rand"
 	"fmt"
 	"log"
@@ -163,6 +165,18 @@ func Copy_Slice_Into_150_Arr(slice []byte, arr [150]byte) {
 	for i := 0; i < minlen; i++ {
 		arr[i] = slice[i]
 	}
+}
+
+// Returns random string consisting of letters and numbers
+func Crypto_RandString(length int) string {
+	buf := make([]byte, length)
+	_, err := rand.Read(buf)
+	if err != nil {
+		log.Fatal("error reading crypto random:", err)
+		panic("error reading crypto random:" + err.Error())
+	}
+	// The slice should now contain random bytes instead of only zeroes.
+	return b64.StdEncoding.EncodeToString(buf)
 }
 
 // This function works, I've manually tested it.
