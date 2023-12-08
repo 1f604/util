@@ -11,17 +11,13 @@ type SafeTLSAutoCertManager struct {
 	_private *autocert.Manager
 }
 
-func NewSafeAutoCertManager(tls_email_address string, domain_name_without_www string, ssl_cache_dir string, whitelist_prefixes []string) *SafeTLSAutoCertManager {
+func NewSafeAutoCertManager(tls_email_address string, ssl_cache_dir string, hostnames_whitelist []string) *SafeTLSAutoCertManager {
 	// build up the list of TLS whitelisted domains: "example.com", "www.example.com", "www2.example.com" etc.
-	tls_whitelist_domains := []string{domain_name_without_www}
-	for _, prefix := range whitelist_prefixes {
-		tls_whitelist_domains = append(tls_whitelist_domains, prefix+"."+domain_name_without_www)
-	}
 	m := &autocert.Manager{ //nolint:exhaustruct // this is from the example code in the official Go documentation
 		Cache:      autocert.DirCache(ssl_cache_dir),
 		Prompt:     autocert.AcceptTOS,
 		Email:      tls_email_address,
-		HostPolicy: autocert.HostWhitelist(tls_whitelist_domains...), // autocert doesn't support wildcard or regex
+		HostPolicy: autocert.HostWhitelist(hostnames_whitelist...), // autocert doesn't support wildcard or regex
 	}
 	return &SafeTLSAutoCertManager{_private: m}
 }
