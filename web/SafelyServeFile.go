@@ -141,6 +141,7 @@ func SafelyServeFileEmbedded(w http.ResponseWriter, r *http.Request, url_prefix 
 	if !strings.HasPrefix(urlpath_str, url_prefix) {
 		// return a BadRequest error saying the URL prefix is wrong
 		log.Printf("URL prefix is invalid for url path %s", urlpath_str)
+		log.Printf("Expected URL prefix %s", url_prefix)
 		http.Error(w, "URL prefix is invalid.", http.StatusInternalServerError)
 		return
 	}
