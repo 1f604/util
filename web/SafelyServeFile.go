@@ -116,7 +116,10 @@ func SafelyServeFile(w http.ResponseWriter, r *http.Request, url_to_dir_map web_
 }
 
 // Simple function for serving embedded files
-func SafelyServeFileEmbedded(w http.ResponseWriter, r *http.Request, embedfs embed.FS, log_request bool) { //nolint:funlen // it's fine
+// Example usage: If you're serving a directory called "static" as "resources", then you want to call it like this:
+//
+// SafelyServeFileEmbedded(w, r, "resources/", "static/", embedfs, false)
+func SafelyServeFileEmbedded(w http.ResponseWriter, r *http.Request, url_prefix string, fs_prefix string, embedfs embed.FS, log_request bool) { //nolint:funlen // it's fine
 	if log_request {
 		Nginx_Log_Received_Request("SafelyServeFileStatic", r)
 	}
@@ -133,6 +136,16 @@ func SafelyServeFileEmbedded(w http.ResponseWriter, r *http.Request, embedfs emb
 	defer func() {
 		log.Print("Finished handling request.")
 	}()
+
+	// Check prefix
+	if !strings.HasPrefix(urlpath_str, url_prefix) {
+		// return a BadRequest error saying the URL prefix is wrong
+		log.Printf("URL prefix is invalid for url path %s", urlpath_str)
+		http.Error(w, "URL prefix is invalid.", http.StatusInternalServerError)
+		return
+	}
+	// Now remove the prefix from the string
+	urlpath_str = urlpath_str[len(url_prefix):]
 
 	// Validate URL path
 	posix_validated_url_path, err := web_types.PosixValidatedFullURLPath(urlpath_str)

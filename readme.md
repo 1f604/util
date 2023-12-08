@@ -13,3 +13,5 @@ To run all tests:
 ```
 go test $(go list ./... | grep -v manual)
 ```
+
+For an overview of this package see https://pkg.go.dev/github.com/1f604/util
