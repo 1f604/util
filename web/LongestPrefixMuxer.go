@@ -130,7 +130,7 @@ func (mux *LongestPrefixRouter) ServeHTTP(w http.ResponseWriter, r *http.Request
 		http.Error(w, "MyCustomMuxer says: Invalid URL path.", http.StatusBadRequest)
 		return
 	}
-	// TODO: Fix muxer so that it will direct requests to the right handler based on the hostname Parse URL -> HostName
+
 	h := mux.match(r.URL.Hostname(), r.URL.Path) // Will return default handler if no match found
 	h.ServeHTTP(w, r)
 }
