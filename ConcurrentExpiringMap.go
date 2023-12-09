@@ -187,6 +187,10 @@ func (cem *ConcurrentExpiringMap) NumItems() int {
 	return len(cem.m)
 }
 
+func (cem *ConcurrentExpiringMap) GetAllItems() map[interface{}]ExpiringMapItem {
+	return cem.m
+}
+
 func (cem *ConcurrentExpiringMap) Get_Entry(key interface{}) (interface{}, error) {
 	// 1. acquire read lock
 	cem.mut.Lock()
