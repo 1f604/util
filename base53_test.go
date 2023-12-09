@@ -1,6 +1,7 @@
 package util_test
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -73,6 +74,22 @@ func Test_Base53_Validation_Fails_Illegal_Chars(t *testing.T) {
 		expect(t, b53m, string(ic)+"ab", '4', false, "Base53: Input string contains illegal character")
 		expect(t, b53m, "ab"+string(ic), '4', false, "Base53: Input string contains illegal character")
 		expect(t, b53m, "a"+string(ic)+"b", '4', false, "Base53: Input string contains illegal character")
+	}
+}
+
+func Test_Conversions(t *testing.T) {
+	t.Parallel()
+
+	b53m := util.NewBase53IDManager()
+
+	buf := []byte{50, 52, 53, 0, 0, 0, 0, 0}
+	uint1 := b53m.Convert_str_to_uint64(string(buf))
+	str := b53m.Convert_uint64_to_str(uint1, 3)
+	uint2 := b53m.Convert_str_to_uint64(str)
+	if uint1 != uint2 || string(buf[0:3]) != str {
+		fmt.Println(uint1, uint2)
+		fmt.Println(string(buf[0:3]), str)
+		panic("Unexpected result")
 	}
 }
 

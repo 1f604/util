@@ -602,3 +602,9 @@ func (b53m *Base53IDManager) Convert_uint64_to_str(bigendian_uint64 uint64, leng
 	binary.BigEndian.PutUint64(buf, bigendian_uint64)
 	return string(buf[0:length])
 }
+
+func (b53m *Base53IDManager) Convert_str_to_uint64(input_str string) uint64 {
+	buf := make([]byte, 8) //nolint:gomnd // 8 is size of int64
+	copy(buf, []byte(input_str))
+	return binary.BigEndian.Uint64(buf)
+}
