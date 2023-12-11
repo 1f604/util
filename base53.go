@@ -482,7 +482,10 @@ func (b53m *Base53IDManager) B53_generate_all_Base53IDs_int64_test(n int) ([]uin
 	return result, nil
 }
 
-func (b53m *Base53IDManager) B53_generate_all_Base53IDs_int64_optimized(n int) ([]uint64, error) {
+type ShouldBase53IDBePlacedIntoSliceFn func(string) bool
+
+// Doesn't push it into slice if it's already in map.
+func (b53m *Base53IDManager) B53_generate_all_Base53IDs_int64_optimized(n int, should_be_added_fn ShouldBase53IDBePlacedIntoSliceFn) ([]uint64, error) {
 	// preliminary checks
 	if n < 2 {
 		return nil, errors.New("Error: minimum id length is 2")
@@ -499,7 +502,8 @@ func (b53m *Base53IDManager) B53_generate_all_Base53IDs_int64_optimized(n int) (
 	}
 	var cur_csum byte
 
-	for kk := 0; true; kk++ {
+	kk := -1
+	for {
 		str_without_csum := string(buf[0:str_without_csum_length])
 		//fmt.Println(str_without_csum_length)
 		// put csum into buf
@@ -507,9 +511,23 @@ func (b53m *Base53IDManager) B53_generate_all_Base53IDs_int64_optimized(n int) (
 		//fmt.Println("cur_csum", cur_csum)
 		//fmt.Println(kk, "buf:", buf)
 		buf[str_without_csum_length] = cur_csum
+		// don't add buf to the result array if it's already in the map
+		if should_be_added_fn != nil { // if a map is provided, then change the behavior depending on if the map contains the item or not
+			item_str := string(buf[0 : str_without_csum_length+1])
+			should_be_added := should_be_added_fn(item_str)
+			if should_be_added { // if buf is already in the map then don't add it to the slice
+				goto add_buf_to_slice
+			} else { // if buf is not in the map then don't change the default behavior
+				goto dont_add_buf_to_slice
+			}
+		}
+
+	add_buf_to_slice:
 		// We use Big Endian because it's more intuitive. I don't think this has much performance impact.
+		kk++
 		result[kk] = binary.BigEndian.Uint64(buf)
 
+	dont_add_buf_to_slice: // skip the part where we add buf to the results array, instead just increment the buf again
 		// generate next ID and check its length
 
 		// length of output shall be equal to or greater than length of input
@@ -597,13 +615,13 @@ func (b53m *Base53IDManager) Convert_uint64_to_byte_array(bigendian_uint64 uint6
 	return buf
 }
 
-func (b53m *Base53IDManager) Convert_uint64_to_str(bigendian_uint64 uint64, length int) string {
+func Convert_uint64_to_str(bigendian_uint64 uint64, length int) string {
 	buf := make([]byte, 8) //nolint:gomnd // 8 is size of int64
 	binary.BigEndian.PutUint64(buf, bigendian_uint64)
 	return string(buf[0:length])
 }
 
-func (b53m *Base53IDManager) Convert_str_to_uint64(input_str string) uint64 {
+func Convert_str_to_uint64(input_str string) uint64 {
 	buf := make([]byte, 8) //nolint:gomnd // 8 is size of int64
 	copy(buf, []byte(input_str))
 	return binary.BigEndian.Uint64(buf)

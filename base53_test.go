@@ -80,12 +80,10 @@ func Test_Base53_Validation_Fails_Illegal_Chars(t *testing.T) {
 func Test_Conversions(t *testing.T) {
 	t.Parallel()
 
-	b53m := util.NewBase53IDManager()
-
 	buf := []byte{50, 52, 53, 0, 0, 0, 0, 0}
-	uint1 := b53m.Convert_str_to_uint64(string(buf))
-	str := b53m.Convert_uint64_to_str(uint1, 3)
-	uint2 := b53m.Convert_str_to_uint64(str)
+	uint1 := util.Convert_str_to_uint64(string(buf))
+	str := util.Convert_uint64_to_str(uint1, 3)
+	uint2 := util.Convert_str_to_uint64(str)
 	if uint1 != uint2 || string(buf[0:3]) != str {
 		fmt.Println(uint1, uint2)
 		fmt.Println(string(buf[0:3]), str)
@@ -278,11 +276,11 @@ func Test_Generate_all_uint64_optimized_generates_strings_with_trailing_zeroes(t
 	t.Parallel()
 	b53m := util.NewBase53IDManager()
 
-	_, err := b53m.B53_generate_all_Base53IDs_int64_optimized(1)
+	_, err := b53m.B53_generate_all_Base53IDs_int64_optimized(1, nil)
 	util.Assert_error_equals(t, err, "Error: minimum id length is 2", 1)
 
 	for i := 2; i < 5; i++ {
-		results, err := b53m.B53_generate_all_Base53IDs_int64_optimized(i)
+		results, err := b53m.B53_generate_all_Base53IDs_int64_optimized(i, nil)
 		util.Assert_no_error(t, err, 1)
 		for _, num := range results {
 			arr := b53m.Convert_uint64_to_byte_array(num)
@@ -300,7 +298,7 @@ func Test_Generate_all_uint64_optimized_generates_exact_same_strings(t *testing.
 	for n := 2; n < 5; n++ {
 		expected_ids, err := b53m.B53_generate_all_Base53IDs(n)
 		util.Check_err(err)
-		actual_ids, err := b53m.B53_generate_all_Base53IDs_int64_optimized(n)
+		actual_ids, err := b53m.B53_generate_all_Base53IDs_int64_optimized(n, nil)
 		util.Check_err(err)
 
 		// check lengths are equal
@@ -309,8 +307,98 @@ func Test_Generate_all_uint64_optimized_generates_exact_same_strings(t *testing.
 		// check each string is equal
 		for i := 0; i < len(actual_ids); i++ {
 			expected_str := expected_ids[i].GetCombinedString()
-			actual_str := b53m.Convert_uint64_to_str(actual_ids[i], n)
+			actual_str := util.Convert_uint64_to_str(actual_ids[i], n)
 			util.Assert_result_equals_interface(t, actual_str, err, expected_str, 1)
 		}
 	}
+}
+
+func test_optimized_helper(t *testing.T, b53m *util.Base53IDManager, n int, the_map map[interface{}]interface{}, expected_values int) {
+	t.Helper()
+
+	should_be_added_fn := func(str string) bool {
+		_, ok := the_map[str]
+		return !ok
+	}
+
+	returned_expected_ids, err := b53m.B53_generate_all_Base53IDs(n)
+	expected_ids_without_blacklisted := []string{}
+	util.Check_err(err)
+	for _, id := range returned_expected_ids {
+		id_str := id.GetCombinedString()
+		_, ok := the_map[id_str]
+		if !ok {
+			expected_ids_without_blacklisted = append(expected_ids_without_blacklisted, id_str)
+		}
+	}
+	actual_ids, err := b53m.B53_generate_all_Base53IDs_int64_optimized(n, should_be_added_fn)
+	util.Check_err(err)
+	// fmt.Println(expected_ids_without_blacklisted)
+	// check lengths are equal
+	util.Assert_result_equals_interface(t, len(actual_ids), err, len(expected_ids_without_blacklisted), 1)
+	util.Assert_result_equals_interface(t, len(actual_ids), err, expected_values, 1)
+
+	// check each string is equal
+	for i := 0; i < len(actual_ids); i++ {
+		expected_str := expected_ids_without_blacklisted[i]
+		actual_str := util.Convert_uint64_to_str(actual_ids[i], n)
+		util.Assert_result_equals_interface(t, actual_str, err, expected_str, 1)
+	}
+}
+
+func Test_Generate_all_uint64_optimized_with_non_nil_map_n_equals_2(t *testing.T) {
+	t.Parallel()
+	b53m := util.NewBase53IDManager()
+
+	// no elements
+	the_map := make(map[interface{}]interface{})
+	test_optimized_helper(t, b53m, 2, the_map, 53)
+
+	the_map["00"] = 123
+	// one element
+	test_optimized_helper(t, b53m, 2, the_map, 52)
+
+	// multiple
+	the_map["Vz"] = 123
+	the_map["z3"] = 123
+	test_optimized_helper(t, b53m, 2, the_map, 50)
+
+	// all elements
+	all_2_character_ids, err := b53m.B53_generate_all_Base53IDs(2)
+	util.Check_err(err)
+	for _, id := range all_2_character_ids {
+		id_str := id.GetCombinedString()
+		the_map[id_str] = 234
+	}
+	test_optimized_helper(t, b53m, 2, the_map, 0)
+}
+
+func Test_Generate_all_uint64_optimized_with_non_nil_map_n_equals_3(t *testing.T) {
+	t.Parallel()
+	b53m := util.NewBase53IDManager()
+
+	total_elems := 53*53 - 4*2
+
+	// no elements
+	the_map := make(map[interface{}]interface{})
+	test_optimized_helper(t, b53m, 3, the_map, total_elems)
+
+	the_map["000"] = 123
+	// one element
+	test_optimized_helper(t, b53m, 3, the_map, total_elems-1)
+
+	// multiple
+	the_map["iMU"] = 123
+	the_map["pZg"] = 123
+	the_map["zz6"] = 123
+	test_optimized_helper(t, b53m, 3, the_map, total_elems-4)
+
+	// all elements
+	all_2_character_ids, err := b53m.B53_generate_all_Base53IDs(3)
+	util.Check_err(err)
+	for _, id := range all_2_character_ids {
+		id_str := id.GetCombinedString()
+		the_map[id_str] = 234
+	}
+	test_optimized_helper(t, b53m, 3, the_map, 0)
 }
