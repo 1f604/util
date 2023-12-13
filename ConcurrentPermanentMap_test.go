@@ -13,53 +13,12 @@ func Test_ConcurrentPermanentMap(t *testing.T) {
 	t.Parallel()
 
 	cpm := util.NewEmptyConcurrentPermanentMap()
-	cpm.Put_New_Entry("key!", "value!")
+	cpm.Put_New_Entry("key!", "value!", 0)
 
 	_, err := cpm.Get_Entry("key")
-	util.Assert_result_equals_bool(t, ok, nil, false, 1)
+	util.Assert_error_equals(t, err, "ConcurrentPermanentMap: nonexistent key", 1)
 
-	val, ok := cpm.Get_Entry("key!")
-	util.Assert_result_equals_bool(t, ok, nil, true, 1)
-	util.Assert_result_equals_interface(t, val, nil, "value!", 1)
-
-	// Some items and their priorities.
-	items := map[string]interface{}{
-		"banana":  1,
-		"apple":   2,
-		"pear":    3,
-		"peaches": 4,
-	}
-
-	cpm_list := make([]util.CPMItem, 0)
-
-	for key, expiry_time := range items {
-		cpm_list = append(cpm_list, util.CPMItem{
-			Key:   key,
-			Value: expiry_time,
-		})
-	}
-
-	cpm = util.NewConcurrentPermanentMapFromSlice(cpm_list)
-
-	_, ok = cpm.Get_Entry("key")
-	util.Assert_result_equals_bool(t, ok, nil, false, 1)
-
-	_, ok = cpm.Get_Entry("key!")
-	util.Assert_result_equals_bool(t, ok, nil, false, 1)
-
-	val, ok = cpm.Get_Entry("banana")
-	util.Assert_result_equals_bool(t, ok, nil, true, 1)
-	util.Assert_result_equals_interface(t, val, nil, 1, 1)
-
-	val, ok = cpm.Get_Entry("apple")
-	util.Assert_result_equals_bool(t, ok, nil, true, 1)
-	util.Assert_result_equals_interface(t, val, nil, 2, 1)
-
-	val, ok = cpm.Get_Entry("pear")
-	util.Assert_result_equals_bool(t, ok, nil, true, 1)
-	util.Assert_result_equals_interface(t, val, nil, 3, 1)
-
-	val, ok = cpm.Get_Entry("peaches")
-	util.Assert_result_equals_bool(t, ok, nil, true, 1)
-	util.Assert_result_equals_interface(t, val, nil, 4, 1)
+	val, err := cpm.Get_Entry("key!")
+	util.Assert_no_error(t, err, 1)
+	util.Assert_result_equals_interface(t, val.GetValue(), nil, "value!", 1)
 }

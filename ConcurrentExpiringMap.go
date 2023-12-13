@@ -41,6 +41,10 @@ func (emi *ExpiringMapItem) MapItemToString() string {
 	return fmt.Sprintf("ExpiringMapItem{value:%#v, expiry_time_unix:%#v}", emi.value, emi.expiry_time_unix)
 }
 
+func (emi *ExpiringMapItem) GetValue() string {
+	return emi.value
+}
+
 type ExpiryCallback func(string)
 
 // keys are strings
@@ -204,9 +208,9 @@ func (cem *ConcurrentExpiringMap) Remove_All_Expired(extra_keeparound_seconds in
 	// fmt.Println("Done expiring items.")
 }
 
-type NonExistentKeyError struct{}
+type CEMNonExistentKeyError struct{}
 
-func (e NonExistentKeyError) Error() string {
+func (e CEMNonExistentKeyError) Error() string {
 	return "ConcurrentExpiringMap: nonexistent key"
 }
 
@@ -243,7 +247,7 @@ func (cem *ConcurrentExpiringMap) Get_Entry(key string) (MapItem, error) {
 	// If the key doesn't exist
 	if !ok {
 		// return error saying key doesn't exist
-		return nil, NonExistentKeyError{}
+		return nil, CEMNonExistentKeyError{}
 	}
 
 	// 3. check if it's expired

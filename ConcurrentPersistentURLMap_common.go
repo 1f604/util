@@ -21,6 +21,7 @@ import (
 
 type MapItem interface {
 	MapItemToString() string
+	GetValue() string
 }
 
 type ConcurrentMap interface {
@@ -44,17 +45,17 @@ func GetEntryCommon(cm ConcurrentMap, short_url string) (MapItem, error) {
 	if err != nil {
 		return nil, err
 	}
-	return val, err //nolint:forcetypeassert // just let it panic.
+	return val, err
 }
 
 // Shorten long URL into short URL and return the short URL and store the entry both in map and on disk
-func PutEntry_Common(requested_length int, long_url string, timestamp int64, Generate_strings_up_to int,
+func PutEntry_Common(requested_length int, long_url string, timestamp int64, generate_strings_up_to int,
 	slice_storage map[int]*RandomBag64, urlmap URLMap, b53m *Base53IDManager, log_storage LogStorage) (string, error) {
 	if requested_length < 2 { //nolint:gomnd // 2 is not magic here. BASE53 can only go down to 2 characters because it uses one character for the checksum
 		return "", errors.New("Requested length is too small.")
 	}
 	// if length is <= 5, grab it from one of the slices
-	if requested_length <= Generate_strings_up_to { //nolint:nestif // yeah it's complicated
+	if requested_length <= generate_strings_up_to { //nolint:nestif // yeah it's complicated
 		randombag, ok := slice_storage[requested_length]
 		if !ok {
 			log.Fatal("Failed to index slice_storage. This should never happen.")
@@ -106,10 +107,13 @@ func PutEntry_Common(requested_length int, long_url string, timestamp int64, Gen
 	}
 }
 
+type NonExistentKeyError interface {
+	NonExistentKeyError() string
+}
+
 // This is the one you want to use in production
-func LoadStoredRecordsFromDisk(cepum_params *CEPUMParams,
-	entry_should_be_ignored_fn func(int64) bool, lss LogStructuredStorage, expiry_callback ExpiryCallback, slice_storage map[int]*RandomBag64,
-	nil_ptr ConcurrentMap) ConcurrentMap { //nolint:gocognit // yeah it's complicated
+func LoadStoredRecordsFromDisk(cepum_params *CEPUMParams, entry_should_be_ignored_fn func(int64) bool, lss LogStructuredStorage, //nolint:gocognit,ireturn // yeah, it is complicated...
+	expiry_callback ExpiryCallback, slice_storage map[int]*RandomBag64, nil_ptr ConcurrentMap) ConcurrentMap {
 	// First, list all the files in the directory
 	entries, err := os.ReadDir(cepum_params.Bucket_directory_path_absolute)
 	if err != nil {
@@ -123,7 +127,7 @@ func LoadStoredRecordsFromDisk(cepum_params *CEPUMParams,
 			continue
 		}
 		// validate file name
-		err := lss.ValidateLogFilename(entry.Name())
+		err = lss.ValidateLogFilename(entry.Name())
 		if err != nil {
 			log.Fatal("Failed to parse name of file in log directory:", entry.Name(), "got error:", err)
 			panic(err)
@@ -172,7 +176,7 @@ func LoadStoredRecordsFromDisk(cepum_params *CEPUMParams,
 			md5_base64, err := br.ReadBytes('\n') // TODO: Remove the trailing \n otherwise it will fail haha
 			Check_err(err)
 			parts := strings.Split(string(str_without_hash), "\t")
-			if len(parts) != 3 {
+			if len(parts) != 3 { //nolint:gomnd // 3 is okay here...
 				log.Fatal("Expected 3 parts (key, value, timestamp), got", len(parts))
 				panic("Got unexpected number of parts")
 			}
@@ -194,14 +198,14 @@ func LoadStoredRecordsFromDisk(cepum_params *CEPUMParams,
 				panic(err)
 			}
 			// Now recompute the md5 and check it against the stored value
-			recomputed_md5 := md5.Sum(str_without_hash)
+			recomputed_md5 := md5.Sum(str_without_hash) //nolint:gosec // md5 is fine here.
 			if !bytes.Equal(recomputed_md5[:], md5_bytes) {
 				log.Fatalf("md5 does not match. Stored: %s Recomputed: %s", hex.EncodeToString(md5_bytes), hex.EncodeToString(recomputed_md5[:]))
 				panic("md5 does not match.")
 			}
 
 			// convert timestamp_str to timestamp_unix
-			timestamp_unix, err := String_to_int64(string(timestamp_str))
+			timestamp_unix, err := String_to_int64(timestamp_str)
 			if err != nil {
 				log.Fatal("Could not convert timestamp_str to int64", err)
 				panic(err)
@@ -222,24 +226,29 @@ func LoadStoredRecordsFromDisk(cepum_params *CEPUMParams,
 
 			// So now we know the entry in the file is not expired.
 			// But what if there is already an entry in the map???
-			val, err := concurrent_map.Get_Entry(string(key_str)) // if map already contains item, err will be nil
-			if err == nil {                                       // This implies that we've already seen a non-expired entry for that URL ID, which should never happen
-				log.Fatal("Multiple non-expired entries found in log files for same key string: ", val.MapItemToString(), " key_str: ", string(key_str))
+			val, err := concurrent_map.Get_Entry(key_str) // if map already contains item, err will be nil
+			if err == nil {                               // This implies that we've already seen a non-expired entry for that URL ID, which should never happen
+				log.Fatal("Multiple non-expired entries found in log files for same key string: ", val.MapItemToString(), " key_str: ", key_str)
 				panic("Multiple non-expired entries found in log files for same URL ID")
 			}
 
 			// Insert it into map (and push it into heap for ConcurrentExpiringMap)
-			concurrent_map.ContinueConstruction(string(key_str), string(value_str), timestamp_unix)
+			concurrent_map.ContinueConstruction(key_str, value_str, timestamp_unix)
 		}
 	}
 	// Call heap.Init() for ConcurrentExpiringMap
 	concurrent_map.FinishConstruction()
 
 	should_be_added_fn := func(keystr string) bool { // Only add to slice if it's not in the map
-		_, err := concurrent_map.Get_Entry(keystr)
-		if err != nil && !errors.Is(err, NonExistentKeyError{}) {
-			log.Fatal("Unexpected error from Get_Entry", err)
-			panic(err)
+		_, err := concurrent_map.Get_Entry(keystr) //nolint:govet // shadow is okay here.
+		if err != nil {
+			switch err.(type) { //nolint:errorlint // just let it fail
+			case CPMNonExistentKeyError, CEMNonExistentKeyError:
+				// okay, good
+			default:
+				log.Fatal("Unexpected error from Get_Entry", err)
+				panic(err)
+			}
 		}
 		return err != nil
 	}

@@ -17,7 +17,7 @@ type ConcurrentPersistentPermanentURLMap struct {
 	Extra_keeparound_seconds_disk int64
 }
 
-func (manager *ConcurrentPersistentPermanentURLMap) GetEntry(short_url string) (MapItem, error) {
+func (manager *ConcurrentPersistentPermanentURLMap) GetEntry(short_url string) (MapItem, error) { //nolint:ireturn //this is ok
 	val, err := GetEntryCommon(manager.urlmap, short_url)
 	return val, err
 }
@@ -38,15 +38,15 @@ type CPPUMParams struct {
 }
 
 // This is the one you want to use in production
-func CreateConcurrentPersistentPermanentURLMapFromDisk(cepum_params *CEPUMParams) *ConcurrentPersistentPermanentURLMap { //nolint:gocognit // yeah it's complicated
-	slice_storage := make(map[int]*RandomBag64, 7)
+func CreateConcurrentPersistentPermanentURLMapFromDisk(cepum_params *CEPUMParams) *ConcurrentPersistentPermanentURLMap {
+	slice_storage := make(map[int]*RandomBag64)
 	lsps := NewLogStructuredPermanentStorage(cepum_params.Bucket_interval, cepum_params.Bucket_directory_path_absolute)
 	var nil_map_ptr *ConcurrentPermanentMap = nil
 
 	// Now load from each file into the map
 	concurrent_map := LoadStoredRecordsFromDisk(cepum_params, nil, lsps, nil, slice_storage, nil_map_ptr)
 
-	manager := ConcurrentPersistentPermanentURLMap{
+	manager := ConcurrentPersistentPermanentURLMap{ //nolint:forcetypeassert // it's okay. Just let it crash.
 		slice_map:                     slice_storage,
 		urlmap:                        concurrent_map.(*ConcurrentPermanentMap),
 		b53m:                          cepum_params.B53m,
