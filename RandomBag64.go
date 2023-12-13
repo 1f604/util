@@ -1,5 +1,7 @@
 package util
 
+import "log"
+
 // custom error types
 
 type RandomBagEmptyError struct{}
@@ -17,6 +19,8 @@ func (rb *RandomBag64) Size() int {
 }
 
 // Removes from array and swaps last element into it
+//
+// Will only return an error if the bag is empty.
 func (rb *RandomBag64) PopRandom() (uint64, error) {
 	// fmt.Println("Bag initial:", rb.arr)
 	// check if something can be popped
@@ -26,7 +30,8 @@ func (rb *RandomBag64) PopRandom() (uint64, error) {
 
 	index, err := Crypto_Randint(len(rb.arr))
 	if err != nil {
-		return 0, err
+		log.Fatal("Failed to generate random number:", err)
+		panic(err)
 	}
 
 	elem := rb.arr[index]
