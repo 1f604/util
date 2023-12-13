@@ -5,6 +5,7 @@ package util
 
 import (
 	b64 "encoding/base64"
+	"strings"
 
 	"crypto/rand"
 	"fmt"
@@ -113,7 +114,8 @@ func Int64_to_string(num int64) string {
 }
 
 func String_to_int64(s string) (int64, error) {
-	return strconv.ParseInt(s, 10, 64)
+	// remove leading and trailing whitespace
+	return strconv.ParseInt(strings.TrimSpace(s), 10, 64)
 }
 
 // this function assumes file pointer is valid.
@@ -255,4 +257,31 @@ func ReplaceString(str string, replacement rune, index int) string {
 	out := []byte(str)
 	out[index] = byte(replacement)
 	return string(out)
+}
+
+type fn_type func()
+
+// Does not tick shift - will run function precisely every X seconds even if function takes some time to run - as long as the function doesn't take too long of course.
+//
+// Synchronous - next call cannot start until previous call has finished.
+func RunFuncEveryXSeconds(fn fn_type, run_interval_seconds int) {
+	for range time.Tick(time.Second * time.Duration(run_interval_seconds)) {
+		log.Println("Running functioN!")
+		fn()
+	}
+}
+
+// Returns error if unix timestamp is before 2023 or after the year 20,000
+//
+// Otherwise returns nil
+func Validate_Timestamp_Common(timestamp_unix int64) error {
+	year_2023 := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
+	year_20000 := time.Date(20000, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
+	switch { // timestamp is either expiry time or generated time
+	case timestamp_unix < year_2023:
+		return fmt.Errorf("Timestamp %#v is before the year 2023", timestamp_unix)
+	case timestamp_unix > year_20000:
+		return fmt.Errorf("Timestamp %#v is after the year 20,000", timestamp_unix)
+	}
+	return nil
 }

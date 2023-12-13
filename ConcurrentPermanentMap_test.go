@@ -13,9 +13,9 @@ func Test_ConcurrentPermanentMap(t *testing.T) {
 	t.Parallel()
 
 	cpm := util.NewEmptyConcurrentPermanentMap()
-	cpm.Put_Entry("key!", "value!")
+	cpm.Put_New_Entry("key!", "value!")
 
-	_, ok := cpm.Get_Entry("key")
+	_, err := cpm.Get_Entry("key")
 	util.Assert_result_equals_bool(t, ok, nil, false, 1)
 
 	val, ok := cpm.Get_Entry("key!")
@@ -23,7 +23,7 @@ func Test_ConcurrentPermanentMap(t *testing.T) {
 	util.Assert_result_equals_interface(t, val, nil, "value!", 1)
 
 	// Some items and their priorities.
-	items := map[interface{}]interface{}{
+	items := map[string]interface{}{
 		"banana":  1,
 		"apple":   2,
 		"pear":    3,
