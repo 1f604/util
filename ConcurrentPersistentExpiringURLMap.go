@@ -21,7 +21,7 @@ type ConcurrentExpiringPersistentURLMap struct {
 	Extra_keeparound_seconds_disk int64
 }
 
-func (manager *ConcurrentExpiringPersistentURLMap) GetEntry(short_url string) (MapItem, error) {
+func (manager *ConcurrentExpiringPersistentURLMap) GetEntry(short_url string) (MapItem, error) { //nolint:ireturn // is ok
 	val, err := GetEntryCommon(manager.map_storage, short_url)
 	return val, err
 }
@@ -138,7 +138,7 @@ func CreateConcurrentExpiringPersistentURLMapFromDisk(cepum_params *CEPUMParams)
 	entry_should_be_ignored_fn := func(expiry_time int64) bool {
 		return expiry_time < cur_unix_timestamp
 	}
-	slice_storage := make(map[int]*RandomBag64, 7)
+	slice_storage := make(map[int]*RandomBag64)
 	expiry_callback := _internal_get_cem_expiry_callback(&slice_storage, cepum_params.Generate_strings_up_to) // this won't get called until much later so it's okay...
 
 	// Now load from each file into the map
@@ -147,7 +147,7 @@ func CreateConcurrentExpiringPersistentURLMapFromDisk(cepum_params *CEPUMParams)
 	var nil_map_ptr *ConcurrentExpiringMap = nil
 	concurrent_map := LoadStoredRecordsFromDisk(cepum_params, entry_should_be_ignored_fn, lbses, expiry_callback, slice_storage, nil_map_ptr)
 
-	manager := ConcurrentExpiringPersistentURLMap{
+	manager := ConcurrentExpiringPersistentURLMap{ //nolint:forcetypeassert // just let it crash.
 		slice_storage:                 slice_storage,
 		map_storage:                   concurrent_map.(*ConcurrentExpiringMap),
 		b53m:                          cepum_params.B53m,

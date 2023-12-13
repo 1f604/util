@@ -16,8 +16,18 @@ type PermanentMapItem struct {
 	value string
 }
 
+type CPMNonExistentKeyError struct{}
+
+func (e CPMNonExistentKeyError) Error() string {
+	return "ConcurrentPermanentMap: nonexistent key"
+}
+
 func (pmi *PermanentMapItem) MapItemToString() string {
 	return fmt.Sprintf("PermanentMapItem{value:%#v}", pmi.value)
+}
+
+func (pmi *PermanentMapItem) GetValue() string {
+	return pmi.value
 }
 
 func (cpm *ConcurrentPermanentMap) NumItems() int {
@@ -69,7 +79,7 @@ func (cpm *ConcurrentPermanentMap) Get_Entry(key string) (MapItem, error) {
 	// If the key doesn't exist
 	if !ok {
 		// return error saying key doesn't exist
-		return nil, NonExistentKeyError{}
+		return nil, CPMNonExistentKeyError{}
 	}
 
 	return &map_item, nil
