@@ -31,7 +31,7 @@ type ConcurrentMap interface {
 }
 
 type URLMap interface {
-	Put_New_Entry(string, interface{}, int64) error
+	Put_New_Entry(string, string, int64) error
 }
 
 type LogStorage interface {
@@ -108,8 +108,8 @@ func PutEntry_Common(requested_length int, long_url string, timestamp int64, Gen
 
 // This is the one you want to use in production
 func LoadStoredRecordsFromDisk(cepum_params *CEPUMParams,
-	entry_should_be_ignored_fn func(int64) bool, add_to_map_fn func(string, string, int64), heap_init_fn func(), lss LogStructuredStorage, expiry_callback ExpiryCallback,
-	nil_map_ptr ConcurrentMap) (map[int]*RandomBag64, ConcurrentMap, LogStructuredStorage) { //nolint:gocognit // yeah it's complicated
+	entry_should_be_ignored_fn func(int64) bool, lss LogStructuredStorage, expiry_callback ExpiryCallback, slice_storage map[int]*RandomBag64,
+	nil_ptr ConcurrentMap) ConcurrentMap { //nolint:gocognit // yeah it's complicated
 	// First, list all the files in the directory
 	entries, err := os.ReadDir(cepum_params.Bucket_directory_path_absolute)
 	if err != nil {
@@ -139,10 +139,7 @@ func LoadStoredRecordsFromDisk(cepum_params *CEPUMParams,
 	stored_map_length := map_size_persister.current_rounded_size
 
 	// Create the map and slice efficiently using the loaded rounded size. It's okay if it's too small, since these will grow automatically.
-	concurrent_map := nil_map_ptr.BeginConstruction(stored_map_length, expiry_callback)
-
-	// Now load from each file into the map
-	lbses := NewLogBucketStructuredExpiringStorage(cepum_params.Bucket_interval, cepum_params.Bucket_directory_path_absolute)
+	concurrent_map := nil_ptr.BeginConstruction(stored_map_length, expiry_callback)
 
 	for _, absolute_filepath := range files_to_be_loaded_from {
 		f, err := os.Open(absolute_filepath) //nolint:govet // ignore err shadow
@@ -246,7 +243,6 @@ func LoadStoredRecordsFromDisk(cepum_params *CEPUMParams,
 		}
 		return err != nil
 	}
-	slice_storage := make(map[int]*RandomBag64)
 	for n := 2; n <= cepum_params.Generate_strings_up_to; n++ {
 		log.Println("Generating all Base 53 IDs of length", n)
 		slice, err := cepum_params.B53m.B53_generate_all_Base53IDs_int64_optimized(n, should_be_added_fn) //nolint:govet // ignore err shadow
@@ -257,5 +253,9 @@ func LoadStoredRecordsFromDisk(cepum_params *CEPUMParams,
 		slice_storage[n] = CreateRandomBagFromSlice(slice)
 	}
 
-	return slice_storage, concurrent_map, lbses
+	if !IsSameType(concurrent_map, nil_ptr) {
+		log.Fatalf("concurrent_map is of type %T while nil_ptr is of type %T", concurrent_map, nil_ptr)
+		panic("Not same type.")
+	}
+	return concurrent_map
 }

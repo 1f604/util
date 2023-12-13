@@ -5,6 +5,7 @@ package util
 
 import (
 	b64 "encoding/base64"
+	"reflect"
 	"strings"
 
 	"crypto/rand"
@@ -284,4 +285,9 @@ func Validate_Timestamp_Common(timestamp_unix int64) error {
 		return fmt.Errorf("Timestamp %#v is after the year 20,000", timestamp_unix)
 	}
 	return nil
+}
+
+// This function works, I've manually tested it.
+func IsSameType(a, b interface{}) bool {
+	return reflect.TypeOf(a) == reflect.TypeOf(b)
 }

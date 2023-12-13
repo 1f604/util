@@ -51,7 +51,7 @@ type ConcurrentExpiringMap struct {
 	expiry_callback ExpiryCallback
 }
 
-// You can call this on nil receiver
+// This method properly constructs the object
 func (*ConcurrentExpiringMap) BeginConstruction(stored_map_length int64, expiry_callback ExpiryCallback) ConcurrentMap {
 	m := make(map[string]ExpiringMapItem, stored_map_length)
 	hq := make(ExpiringHeapQueue, 0, stored_map_length)

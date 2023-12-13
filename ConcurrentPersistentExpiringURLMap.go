@@ -6,14 +6,8 @@
 package util
 
 import (
-	"bufio"
-	"container/heap"
 	"errors"
-	"fmt"
-	"io"
 	"log"
-	"os"
-	"path/filepath"
 	"time"
 )
 
@@ -139,152 +133,23 @@ type CEPUMParams struct {
 }
 
 // This is the one you want to use in production
-func CreateConcurrentExpiringPersistentURLMapFromDisk(cepum_params *CEPUMParams) *ConcurrentExpiringPersistentURLMap { //nolint:gocognit // yeah it's complicated
-	// First, list all the files in the directory
-	entries, err := os.ReadDir(cepum_params.Bucket_directory_path_absolute)
-	if err != nil {
-		log.Fatal("Failed to open bucket directory:", cepum_params.Bucket_directory_path_absolute, "error:", err)
-		panic(err)
-	}
-	// Now for each file, try to parse the file's filename and load it into the map if it's not expired
-	files_to_be_loaded_from := make([]string, 0, len(entries))
+func CreateConcurrentExpiringPersistentURLMapFromDisk(cepum_params *CEPUMParams) *ConcurrentExpiringPersistentURLMap {
 	cur_unix_timestamp := time.Now().Unix()
-	year_20000 := time.Date(20000, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
-	year_2023 := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
-	for _, entry := range entries {
-		if entry.IsDir() { // ignore directories
-			continue
-		}
-		// if you can't parse it, raise an error
-		expiry_timestamp_unix, err1 := LBSES_Parse_bucket_filename_to_timestamp(entry.Name())
-		if err1 != nil {
-			log.Fatal("Failed to parse name of file in bucket directory:", entry.Name(), "got error:", err1)
-			panic(err1)
-		}
-		// if it's expired, then delete it with grace period
-		absolute_file_path := filepath.Join(cepum_params.Bucket_directory_path_absolute, entry.Name())
-		if (expiry_timestamp_unix + cepum_params.Extra_keeparound_seconds_disk) < cur_unix_timestamp {
-			if err = os.Remove(absolute_file_path); err != nil {
-				log.Fatal("Could not remove expired log file:", err)
-				panic(err)
-			}
-		} else { // otherwise, add it to the list of files to be loaded from
-			files_to_be_loaded_from = append(files_to_be_loaded_from, absolute_file_path)
-		}
+	entry_should_be_ignored_fn := func(expiry_time int64) bool {
+		return expiry_time < cur_unix_timestamp
 	}
+	slice_storage := make(map[int]*RandomBag64, 7)
+	expiry_callback := _internal_get_cem_expiry_callback(&slice_storage, cepum_params.Generate_strings_up_to) // this won't get called until much later so it's okay...
 
-	map_size_persister := NewMapSizeFileManager(cepum_params.Size_file_path_absolute, cepum_params.Size_file_rounded_multiple)
 	// Now load from each file into the map
 	lbses := NewLogBucketStructuredExpiringStorage(cepum_params.Bucket_interval, cepum_params.Bucket_directory_path_absolute)
-	// Load size of map from file
-	stored_map_length := map_size_persister.current_rounded_size
 
-	// Create the map and slice efficiently using the loaded rounded size. It's okay if it's too small, since these will grow automatically.
-	m := make(map[string]ExpiringMapItem, stored_map_length)
-	hq := make(ExpiringHeapQueue, 0, stored_map_length)
-
-	for _, absolute_filepath := range files_to_be_loaded_from {
-		f, err := os.Open(absolute_filepath) //nolint:govet // ignore err shadow
-		if err != nil {
-			log.Fatal("Failed to open bucket log file:", absolute_filepath, "err:", err)
-			panic(err)
-		}
-
-		// Now scan the input from the file
-		br := bufio.NewReader(f)
-		for {
-			key_str, err := br.ReadBytes('\t') //nolint:govet // ignore err shadow
-			// check if error is EOF
-			if errors.Is(err, io.EOF) {
-				// make sure we're not waiting for more input
-				// If ReadBytes encounters an error before finding a delimiter,
-				// it returns the data read before the error and the error itself (often io.EOF).
-				if len(key_str) != 0 {
-					log.Fatal("File ", absolute_filepath, " does not end with newline, indicating some kind of corruption")
-					panic("File doesn't end with newline.")
-				}
-				break
-			}
-			if err != nil {
-				log.Fatal("Unexpected non-EOF error")
-				panic(err)
-			}
-			value_str, err := br.ReadBytes('\t')
-			if err != nil {
-				panic(err)
-			}
-			expiry_str, err := br.ReadBytes('\n')
-			if err != nil {
-				panic(err)
-			}
-			// convert expiry_str to expiry_time_unix
-			expiry_time, err := String_to_int64(string(expiry_str))
-			if err != nil {
-				log.Fatal("Could not convert expiry time to int64", err)
-				panic(err)
-			}
-			switch {
-			case expiry_time < cur_unix_timestamp:
-				// already expired, so ignore it
-				continue // go to next loop iteration
-			case expiry_time < year_2023:
-				// should never happen
-				log.Fatal("Expiry time less than year 2023", expiry_time)
-				panic(fmt.Sprintf("Expiry time %d greater than year 2023", expiry_time))
-			case expiry_time > year_20000:
-				// expiry_time too big
-				// fatal error
-				log.Fatal("Expiry time greater than year 20000", expiry_time)
-				panic("Expiry time greater than year 20000")
-			}
-			// So now we know the entry in the file is not expired.
-			// But what if there is already an entry in the map???
-			val, ok := m[string(key_str)]
-			if ok { // This implies that we've already seen a non-expired entry for that URL ID, which should never happen
-				log.Fatal("Multiple non-expired entries found in log files for same key string: ", val, " expiry time: ", val.expiry_time_unix, " value: ", val.value, " key_str: ", string(key_str))
-				panic("Multiple non-expired entries found in log files for same URL ID")
-			}
-
-			// first add it to the map
-			map_item := ExpiringMapItem{
-				value:            string(value_str), // TODO: Validate value_string to make sure it doesn't contain illegal symbols.
-				expiry_time_unix: expiry_time,
-			}
-			m[string(key_str)] = map_item
-
-			// then add it to the heap
-			heap_item := ExpiringHeapItem{
-				key:              string(key_str),
-				expiry_time_unix: expiry_time,
-			}
-			hq.Push(&heap_item)
-		}
-	}
-	// Now initialize the heap
-	heap.Init(&hq)
-
-	// fmt.Println("added:", item)
-	// fmt.Println("New map:", cem.m)
-	// fmt.Printf("New heap: %+v\n", cem.hq)
-	should_be_added_fn := func(keystr string) bool {
-		_, ok := m[keystr]
-		return !ok
-	}
-
-	slice_storage := make(map[int]*RandomBag64)
-	for n := 2; n <= cepum_params.Generate_strings_up_to; n++ {
-		log.Println("Generating all Base 53 IDs of length", n)
-		slice, err := cepum_params.B53m.B53_generate_all_Base53IDs_int64_optimized(n, should_be_added_fn) //nolint:govet // ignore err shadow
-		if err != nil {
-			log.Fatal("B53_generate_all_Base53IDs_int64_optimized failed", err)
-			panic("B53_generate_all_Base53IDs_int64_optimized failed: " + err.Error())
-		}
-		slice_storage[n] = CreateRandomBagFromSlice(slice)
-	}
+	var nil_map_ptr *ConcurrentExpiringMap = nil
+	concurrent_map := LoadStoredRecordsFromDisk(cepum_params, entry_should_be_ignored_fn, lbses, expiry_callback, slice_storage, nil_map_ptr)
 
 	manager := ConcurrentExpiringPersistentURLMap{
 		slice_storage:                 slice_storage,
-		map_storage:                   NewEmptyConcurrentExpiringMap(_internal_get_cem_expiry_callback(&slice_storage, cepum_params.Generate_strings_up_to)),
+		map_storage:                   concurrent_map.(*ConcurrentExpiringMap),
 		b53m:                          cepum_params.B53m,
 		lbses:                         lbses,
 		Extra_keeparound_seconds_ram:  cepum_params.Extra_keeparound_seconds_ram,
