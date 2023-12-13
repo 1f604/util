@@ -28,7 +28,7 @@ func (cpm *ConcurrentPermanentMap) NumItems() int {
 }
 
 // You can call this on nil receiver
-func (*ConcurrentPermanentMap) BeginConstruction(stored_map_length int64, expiry_callback ExpiryCallback) *ConcurrentPermanentMap {
+func (*ConcurrentPermanentMap) BeginConstruction(stored_map_length int64, expiry_callback ExpiryCallback) ConcurrentMap {
 	m := make(map[string]PermanentMapItem, stored_map_length)
 	return &ConcurrentPermanentMap{
 		mut: sync.Mutex{},
@@ -45,7 +45,7 @@ func (cpm *ConcurrentPermanentMap) ContinueConstruction(key_str string, value_st
 func (cpm *ConcurrentPermanentMap) FinishConstruction() {} // Does nothing.
 
 // Returns an error if the entry already exists, otherwise returns nil.
-func (cpm *ConcurrentPermanentMap) Put_New_Entry(key string, value string) error {
+func (cpm *ConcurrentPermanentMap) Put_New_Entry(key string, value string, _ int64) error {
 	cpm.mut.Lock()
 	defer cpm.mut.Unlock()
 
