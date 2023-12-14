@@ -30,6 +30,10 @@ func (pmi *PermanentMapItem) GetValue() string {
 	return pmi.value
 }
 
+func (pmi *PermanentMapItem) GetType() string {
+	return "permanent"
+}
+
 func (emi *PermanentMapItem) GetExpiryTime() int64 {
 	return -1
 }

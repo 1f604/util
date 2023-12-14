@@ -23,6 +23,7 @@ type MapItem interface {
 	MapItemToString() string
 	GetValue() string
 	GetExpiryTime() int64
+	GetType() string
 }
 
 type ConcurrentMap interface {
