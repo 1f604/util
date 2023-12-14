@@ -22,6 +22,7 @@ import (
 type MapItem interface {
 	MapItemToString() string
 	GetValue() string
+	GetExpiryTime() int64
 }
 
 type ConcurrentMap interface {

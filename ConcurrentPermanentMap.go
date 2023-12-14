@@ -30,6 +30,10 @@ func (pmi *PermanentMapItem) GetValue() string {
 	return pmi.value
 }
 
+func (emi *PermanentMapItem) GetExpiryTime() int64 {
+	return -1
+}
+
 func (cpm *ConcurrentPermanentMap) NumItems() int {
 	cpm.mut.Lock()
 	defer cpm.mut.Unlock()

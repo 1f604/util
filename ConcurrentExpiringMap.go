@@ -45,6 +45,10 @@ func (emi *ExpiringMapItem) GetValue() string {
 	return emi.value
 }
 
+func (emi *ExpiringMapItem) GetExpiryTime() int64 {
+	return emi.expiry_time_unix
+}
+
 type ExpiryCallback func(string)
 
 // keys are strings
