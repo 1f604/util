@@ -105,11 +105,11 @@ func PutEntry_Common(requested_length int, long_url string, timestamp int64, gen
 	// Successfully put it into the map. Now write it to disk too
 added_item_to_map:
 	// Update the size file if necessary
-	log.Print("urlmap.NumItems():", urlmap.NumItems())
+	// log.Print("urlmap.NumItems():", urlmap.NumItems())
 	map_size_persister.UpdateMapSizeRounded(int64(urlmap.NumItems()))
 	// It's okay if this is slow since it's just a write. Most operations are going to be reads.
 	err := log_storage.AppendNewEntry(result_str, long_url, timestamp)
-	log.Println("calling log_storage.AppendNewEntry(result_str, long_url, timestamp)")
+	// log.Println("calling log_storage.AppendNewEntry(result_str, long_url, timestamp)")
 	if err != nil {
 		// It should never fail.
 		log.Fatal("AppendNewEntry failed:", err)
