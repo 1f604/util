@@ -63,7 +63,12 @@ func NewLogStructuredPermanentStorage(log_file_max_size int64, log_directory_pat
 			biggest_numbered_filename = entry.Name()
 		}
 	}
+	// If there are no entries, then create 0.log
+	if len(biggest_numbered_filename) == 0 {
+		biggest_numbered_filename = "0.log"
+	}
 
+	fmt.Println("biggest_numbered_filename:", biggest_numbered_filename)
 	current_log_filepath_absolute := filepath.Join(log_directory_path_absolute, biggest_numbered_filename)
 	// We should keep track of the file size too, so that we rotate it when we get to max size
 	fh, err := os.OpenFile(current_log_filepath_absolute, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0o644) // open in append mode, create if not already exist

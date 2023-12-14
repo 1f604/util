@@ -27,6 +27,7 @@ func NewMapSizeFileManager(size_file_path_absolute string, size_multiple int64) 
 	_, err := os.Stat(size_file_path_absolute)
 	if err != nil {
 		// if it doesn't exist then create it
+		log.Println("Size file doesn't exist, creating it...")
 		f, err := os.OpenFile(size_file_path_absolute, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644) //nolint:govet // ignore err shadow
 		Check_err(err)
 		// set it to the size_growth_amount to begin with.
@@ -76,7 +77,7 @@ func (msfm *MapSizeFileManager) UpdateMapSizeRounded(actual_size int64) {
 	msfm.mut.Lock()
 	defer msfm.mut.Unlock()
 
-	number_to_round := actual_size + msfm.size_multiple/5
+	number_to_round := actual_size + msfm.size_multiple/2 //nolint:gomnd // 2 is a good number
 	// Now round it to the nearest size
 	rounded_size := ((number_to_round / msfm.size_multiple) + 1) * msfm.size_multiple
 

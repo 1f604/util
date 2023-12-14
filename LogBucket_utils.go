@@ -52,24 +52,22 @@ func Write_Entry_To_File(key string, value string, timestamp int64, file_handle 
 	// Generate the bytes to write to the file
 	// validate key first
 	for _, c := range key {
-		if c == '\n' || c == '\t' {
-			return errors.New("Error: key contains newline or tab:" + string("c"))
+		if c == '\n' || c == '\t' || c == '\x1e' {
+			return errors.New("Error: key contains newline or tab or x1e:" + string("c"))
 		}
 	}
 	// validate value
 	for _, c := range value {
-		if c == '\n' || c == '\t' {
-			return errors.New("Error: value contains newline or tab:" + string("c"))
+		if c == '\n' || c == '\t' || c == '\x1e' {
+			return errors.New("Error: value contains newline or tab or x1e:" + string("c"))
 		}
 	}
-	// TODO: IMPORTANT: Remember to add checksum!!
 	// we use md5 to detect corruption - 16 bytes is enough.
-	// TODO: add hash checking on loading from disk
 	str_to_sum := key + string("\t") + value + string("\t") + Int64_to_string(timestamp)
 	hash_bytes := md5.Sum([]byte(str_to_sum))
 	hash_base64 := b64.StdEncoding.EncodeToString(hash_bytes[:])
 	// convert hash to printable string
-	string_to_write := str_to_sum + "\t" + hash_base64 + string("\n")
+	string_to_write := str_to_sum + "\x1e" + hash_base64 + string("\n")
 	if _, err := file_handle.WriteString(string_to_write); err != nil {
 		log.Fatal(err)
 		panic(err)

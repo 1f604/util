@@ -5,16 +5,28 @@
 
 package util
 
-import "time"
+import (
+	"log"
+	"time"
+)
 
 type ConcurrentPersistentPermanentURLMap struct {
-	slice_map                     map[int]*RandomBag64
-	urlmap                        *ConcurrentPermanentMap
-	b53m                          *Base53IDManager
-	lsps                          *LogStructuredPermanentStorage
-	Generate_strings_up_to        int
-	Extra_keeparound_seconds_ram  int64
-	Extra_keeparound_seconds_disk int64
+	slice_map              map[int]*RandomBag64
+	urlmap                 *ConcurrentPermanentMap
+	b53m                   *Base53IDManager
+	lsps                   *LogStructuredPermanentStorage
+	generate_strings_up_to int
+	map_size_persister     *MapSizeFileManager
+}
+
+func (manager *ConcurrentPersistentPermanentURLMap) PrintInternalState() {
+	log.Println(" ============ Printing CPPUM internal state ===========")
+	log.Println("Printing slice_maps:")
+	for k, v := range manager.slice_map {
+		log.Println("k,v:", k, *v)
+	}
+	log.Println(manager.urlmap)
+	log.Println(" ------------------------------------------------------")
 }
 
 func (manager *ConcurrentPersistentPermanentURLMap) GetEntry(short_url string) (MapItem, error) { //nolint:ireturn //this is ok
@@ -25,35 +37,48 @@ func (manager *ConcurrentPersistentPermanentURLMap) GetEntry(short_url string) (
 // Shorten long URL into short URL and return the short URL and store the entry both in map and on disk
 func (manager *ConcurrentPersistentPermanentURLMap) PutEntry(requested_length int, long_url string) (string, error) {
 	cur_unix_timestamp := time.Now().Unix()
-	val, err := PutEntry_Common(requested_length, long_url, cur_unix_timestamp, manager.Generate_strings_up_to, manager.slice_map, manager.urlmap, manager.b53m, manager.lsps)
+	val, err := PutEntry_Common(requested_length, long_url, cur_unix_timestamp, manager.generate_strings_up_to, manager.slice_map, manager.urlmap, manager.b53m, manager.lsps, manager.map_size_persister)
 	return val, err
 }
 
 type CPPUMParams struct {
-	Bucket_directory_path_absolute  string
-	B53m                            *Base53IDManager
-	Size_file_rounded_growth_amount int64
-	Create_size_file_if_not_exists  bool
-	Generate_strings_up_to          int
+	Log_directory_path_absolute string
+	B53m                        *Base53IDManager
+	Generate_strings_up_to      int
+	Log_file_max_size_bytes     int64
+	Size_file_rounded_multiple  int64
+	Size_file_path_absolute     string
 }
 
 // This is the one you want to use in production
-func CreateConcurrentPersistentPermanentURLMapFromDisk(cepum_params *CEPUMParams) *ConcurrentPersistentPermanentURLMap {
+func CreateConcurrentPersistentPermanentURLMapFromDisk(cppum_params *CPPUMParams) *ConcurrentPersistentPermanentURLMap {
 	slice_storage := make(map[int]*RandomBag64)
-	lsps := NewLogStructuredPermanentStorage(cepum_params.Bucket_interval, cepum_params.Bucket_directory_path_absolute)
+	lsps := NewLogStructuredPermanentStorage(cppum_params.Log_file_max_size_bytes, cppum_params.Log_directory_path_absolute)
 	var nil_map_ptr *ConcurrentPermanentMap = nil
 
 	// Now load from each file into the map
-	concurrent_map := LoadStoredRecordsFromDisk(cepum_params, nil, lsps, nil, slice_storage, nil_map_ptr)
+	params := LSRFD_Params{
+		B53m:                        cppum_params.B53m,
+		Log_directory_path_absolute: cppum_params.Log_directory_path_absolute,
+		Entry_should_be_ignored_fn:  nil,
+		Lss:                         lsps,
+		Expiry_callback:             nil,
+		Slice_storage:               slice_storage,
+		Nil_ptr:                     nil_map_ptr,
+		Size_file_rounded_multiple:  cppum_params.Size_file_rounded_multiple,
+		Generate_strings_up_to:      cppum_params.Generate_strings_up_to,
+		Size_file_path_absolute:     cppum_params.Size_file_path_absolute,
+	}
+
+	concurrent_map, map_size_persister := LoadStoredRecordsFromDisk(&params)
 
 	manager := ConcurrentPersistentPermanentURLMap{ //nolint:forcetypeassert // it's okay. Just let it crash.
-		slice_map:                     slice_storage,
-		urlmap:                        concurrent_map.(*ConcurrentPermanentMap),
-		b53m:                          cepum_params.B53m,
-		lsps:                          lsps,
-		Extra_keeparound_seconds_ram:  cepum_params.Extra_keeparound_seconds_ram,
-		Extra_keeparound_seconds_disk: cepum_params.Extra_keeparound_seconds_disk,
-		Generate_strings_up_to:        cepum_params.Generate_strings_up_to,
+		slice_map:              slice_storage,
+		urlmap:                 concurrent_map.(*ConcurrentPermanentMap),
+		b53m:                   cppum_params.B53m,
+		lsps:                   lsps,
+		generate_strings_up_to: cppum_params.Generate_strings_up_to,
+		map_size_persister:     map_size_persister,
 	}
 
 	return &manager

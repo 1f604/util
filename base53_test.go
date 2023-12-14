@@ -313,7 +313,7 @@ func Test_Generate_all_uint64_optimized_generates_exact_same_strings(t *testing.
 	}
 }
 
-func test_optimized_helper(t *testing.T, b53m *util.Base53IDManager, n int, the_map map[interface{}]interface{}, expected_values int) {
+func test_optimized_helper(t *testing.T, b53m *util.Base53IDManager, n int, the_map map[string]interface{}, expected_values int) {
 	t.Helper()
 
 	should_be_added_fn := func(str string) bool {
@@ -351,7 +351,7 @@ func Test_Generate_all_uint64_optimized_with_non_nil_map_n_equals_2(t *testing.T
 	b53m := util.NewBase53IDManager()
 
 	// no elements
-	the_map := make(map[interface{}]interface{})
+	the_map := make(map[string]interface{})
 	test_optimized_helper(t, b53m, 2, the_map, 53)
 
 	the_map["00"] = 123
@@ -380,7 +380,7 @@ func Test_Generate_all_uint64_optimized_with_non_nil_map_n_equals_3(t *testing.T
 	total_elems := 53*53 - 4*2
 
 	// no elements
-	the_map := make(map[interface{}]interface{})
+	the_map := make(map[string]interface{})
 	test_optimized_helper(t, b53m, 3, the_map, total_elems)
 
 	the_map["000"] = 123

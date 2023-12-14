@@ -267,7 +267,7 @@ type fn_type func()
 // Synchronous - next call cannot start until previous call has finished.
 func RunFuncEveryXSeconds(fn fn_type, run_interval_seconds int) {
 	for range time.Tick(time.Second * time.Duration(run_interval_seconds)) {
-		log.Println("Running functioN!")
+		//log.Println("Running functioN!")
 		fn()
 	}
 }
