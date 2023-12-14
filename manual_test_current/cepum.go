@@ -29,24 +29,24 @@ func main() {
 		for {
 			time.Sleep(200 * time.Millisecond)
 			expiry_timestamp := time.Now().Unix() + int64(150)
-			val, err := cepum.PutEntry(3, "google.com", expiry_timestamp)
-			log.Println("Added new entry:", val, err)
-			log.Println("Current timestamp", time.Now().Unix())
+			cepum.PutEntry(3, "google.com", expiry_timestamp)
+			//log.Println("Added new entry:", val, err)
+			//log.Println("Current timestamp", time.Now().Unix())
 		}
 	}()
 
 	for i := 0; i < 20; i++ {
-		rand_num, err := util.Crypto_Randint(90)
+		rand_num, _ := util.Crypto_Randint(90)
 
 		expiry_timestamp := time.Now().Unix() + int64(rand_num)
-		val, err := cepum.PutEntry(3, "google.com", expiry_timestamp)
-		log.Println(val, err)
-		log.Println("Current timestamp", time.Now().Unix())
+		cepum.PutEntry(3, "google.com", expiry_timestamp)
+		//log.Println(val, err)
+		//log.Println("Current timestamp", time.Now().Unix())
 	}
 
 	for {
 		time.Sleep(1 * time.Second)
-		cepum.PrintInternalState()
+		//cepum.PrintInternalState()
 	}
 
 	log.Println("wtf!!!!!!!!!!!ww!")
