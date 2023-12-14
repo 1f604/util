@@ -301,8 +301,11 @@ func (b53m *Base53IDManager) _b53_generate_random_unchecksummed(n int) (string, 
 }
 
 func (b53m *Base53IDManager) B53_generate_random_Base53ID(n int) (Base53ID, error) {
+	if n < 2 {
+		return nil, errors.New("Requested string too short!")
+	}
 	for i := 0; i < 100; i++ { // try 100 times to generate new ID, then give up
-		str_without_csum, err := b53m._b53_generate_random_unchecksummed(n)
+		str_without_csum, err := b53m._b53_generate_random_unchecksummed(n - 1)
 		if err != nil {
 			return nil, err
 		}

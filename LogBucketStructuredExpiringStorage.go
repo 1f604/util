@@ -107,6 +107,8 @@ func (lbses *LogBucketStructuredExpiringStorage) DeleteExpiredLogFiles(extra_kee
 		// if it's expired, then delete it
 		// add grace period
 		if (expiry_timestamp_unix + extra_keeparound_seconds_disk) < cur_timestamp {
+			log.Println("Deleting file ", filepath.Join(lbses.bucket_directory_path_absolute, e.Name()))
+			log.Println("Current time:", time.Now().Unix())
 			if err = os.Remove(filepath.Join(lbses.bucket_directory_path_absolute, e.Name())); err != nil {
 				log.Fatal(err)
 				panic(err)

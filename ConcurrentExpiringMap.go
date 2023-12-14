@@ -21,6 +21,7 @@ package util
 import (
 	"container/heap"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 )
@@ -74,11 +75,11 @@ func (cem *ConcurrentExpiringMap) ContinueConstruction(key_str string, value_str
 		value:            value_str,
 		expiry_time_unix: expiry_time,
 	}
-	cem.m[string(key_str)] = map_item
+	cem.m[key_str] = map_item
 
 	// then add it to the heap
 	heap_item := ExpiringHeapItem{
-		key:              string(key_str),
+		key:              key_str,
 		expiry_time_unix: expiry_time,
 	}
 	cem.hq.Push(&heap_item)
@@ -183,6 +184,8 @@ func NewConcurrentExpiringMapFromSlice(expiry_callback ExpiryCallback, kv_pairs 
 // keep links around for extra_keeparound_seconds just to tell people that the link has expired
 // this function will remove 10 million entries in 3 seconds
 func (cem *ConcurrentExpiringMap) Remove_All_Expired(extra_keeparound_seconds int64) {
+	fmt.Println("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ REMOVE ALL EXPIRED CALLED")
+	log.Println("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ REMOVE ALL EXPIRED CALLED")
 	cem.mut.Lock()
 	defer cem.mut.Unlock()
 
@@ -200,6 +203,8 @@ func (cem *ConcurrentExpiringMap) Remove_All_Expired(extra_keeparound_seconds in
 			cem.expiry_callback(item.key)
 		}
 		// then remove from map
+		fmt.Println("===================================================================================== Removing item:", item.expiry_time_unix, item.key)
+		log.Println("===================================================================================== Removing item:", item.expiry_time_unix, item.key)
 		delete(cem.m, item.key)
 		// fmt.Println("removed:", item)
 		// fmt.Println("New map:", cem.m)
