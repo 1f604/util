@@ -67,6 +67,10 @@ func (manager *ConcurrentExpiringPersistentURLMap) PrintInternalState() {
 	log.Println(" ------------------------------------------------------")
 }
 
+func (manager *ConcurrentExpiringPersistentURLMap) NumItems() int { //nolint:ireturn // is ok
+	return manager.map_storage.NumItems()
+}
+
 func (manager *ConcurrentExpiringPersistentURLMap) GetEntry(short_url string) (MapItem, error) { //nolint:ireturn // is ok
 	val, err := GetEntryCommon(manager.map_storage, short_url)
 	return val, err
