@@ -29,6 +29,10 @@ func (manager *ConcurrentPersistentPermanentURLMap) PrintInternalState() {
 	log.Println(" ------------------------------------------------------")
 }
 
+func (manager *ConcurrentPersistentPermanentURLMap) NumItems() int { //nolint:ireturn // is ok
+	return manager.urlmap.NumItems()
+}
+
 func (manager *ConcurrentPersistentPermanentURLMap) GetEntry(short_url string) (MapItem, error) { //nolint:ireturn //this is ok
 	val, err := GetEntryCommon(manager.urlmap, short_url)
 	return val, err
