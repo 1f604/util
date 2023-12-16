@@ -7,10 +7,12 @@ package util
 
 import (
 	"log"
+	"sync"
 	"time"
 )
 
 type ConcurrentPersistentPermanentURLMap struct {
+	mut                    sync.Mutex
 	slice_map              map[int]*RandomBag64
 	urlmap                 *ConcurrentPermanentMap
 	b53m                   *Base53IDManager
@@ -20,6 +22,9 @@ type ConcurrentPersistentPermanentURLMap struct {
 }
 
 func (manager *ConcurrentPersistentPermanentURLMap) PrintInternalState() {
+	manager.mut.Lock()
+	defer manager.mut.Unlock()
+
 	log.Println(" ============ Printing CPPUM internal state ===========")
 	log.Println("Printing slice_maps:")
 	for k, v := range manager.slice_map {
@@ -30,16 +35,25 @@ func (manager *ConcurrentPersistentPermanentURLMap) PrintInternalState() {
 }
 
 func (manager *ConcurrentPersistentPermanentURLMap) NumItems() int { //nolint:ireturn // is ok
+	manager.mut.Lock()
+	defer manager.mut.Unlock()
+
 	return manager.urlmap.NumItems()
 }
 
 func (manager *ConcurrentPersistentPermanentURLMap) GetEntry(short_url string) (MapItem, error) { //nolint:ireturn //this is ok
+	manager.mut.Lock()
+	defer manager.mut.Unlock()
+
 	val, err := GetEntryCommon(manager.urlmap, short_url)
 	return val, err
 }
 
 // Shorten long URL into short URL and return the short URL and store the entry both in map and on disk
 func (manager *ConcurrentPersistentPermanentURLMap) PutEntry(requested_length int, long_url string, _ int64) (string, error) {
+	manager.mut.Lock()
+	defer manager.mut.Unlock()
+
 	cur_unix_timestamp := time.Now().Unix()
 	val, err := PutEntry_Common(requested_length, long_url, cur_unix_timestamp, manager.generate_strings_up_to, manager.slice_map, manager.urlmap, manager.b53m, manager.lsps, manager.map_size_persister)
 	return val, err
@@ -77,6 +91,7 @@ func CreateConcurrentPersistentPermanentURLMapFromDisk(cppum_params *CPPUMParams
 	concurrent_map, map_size_persister := LoadStoredRecordsFromDisk(&params)
 
 	manager := ConcurrentPersistentPermanentURLMap{ //nolint:forcetypeassert // it's okay. Just let it crash.
+		mut:                    sync.Mutex{},
 		slice_map:              slice_storage,
 		urlmap:                 concurrent_map.(*ConcurrentPermanentMap),
 		b53m:                   cppum_params.B53m,
