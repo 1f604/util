@@ -35,18 +35,27 @@ type RotateWriter struct {
 	logfiledir              string
 	logfileprefix           string
 	fp                      *os.File
+	copy_to_stdout          bool
 }
 
 // Make a new RotateWriter. Return nil if error occurs during setup.
-func NewRotateWriter(logfilepath string, loggingdir string, logfileprefix string, maxfilesize_bytes int64, directorymaxsize_bytes int64) *RotateWriter {
+func NewRotateWriter(logfilepath string, loggingdir string, logfileprefix string, maxfilesize_bytes int64, directorymaxsize_bytes int64, copy_to_stdout bool) *RotateWriter {
 	// Try to create the log file
 	fp, err := os.OpenFile(logfilepath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0o644) // open in append mode, create if not already exist
 	if err != nil {
 		panic("ERROR: FAILED TO OPEN/CREATE NEW LOG FILE!!!")
 	}
 
-	w := &RotateWriter{lock: sync.Mutex{}, LogFilePath: logfilepath, logfiledir: loggingdir, logfileprefix: logfileprefix, maxfilesize_bytes: maxfilesize_bytes,
-		DirectorySizeLimitBytes: directorymaxsize_bytes, fp: fp}
+	w := &RotateWriter{
+		lock:                    sync.Mutex{},
+		LogFilePath:             logfilepath,
+		logfiledir:              loggingdir,
+		logfileprefix:           logfileprefix,
+		maxfilesize_bytes:       maxfilesize_bytes,
+		DirectorySizeLimitBytes: directorymaxsize_bytes,
+		fp:                      fp,
+		copy_to_stdout:          copy_to_stdout,
+	}
 	return w
 }
 
@@ -88,7 +97,9 @@ func (w *RotateWriter) Write(dangerous_string []byte) (int, error) {
 		w.Rotate()
 	}
 
-	fmt.Print("log msg: ", string(prefix_array)) // this is safe because the user input has already been encoded at this point.
+	if w.copy_to_stdout {
+		fmt.Print("log msg: ", string(prefix_array)) // this is safe because the user input has already been encoded at this point.
+	}
 	// now write the line to the log file
 	w.lock.Lock()
 	defer w.lock.Unlock()
@@ -259,7 +270,7 @@ func (w *RotateWriter) Rotate() {
 	w.delete_Excess_Files()
 }
 
-func Set_up_logging_panic_on_err(logging_dir string, filename string, logfileprefix string, maxlogfilesize_bytes int64, directorymaxsize_bytes int64) {
+func Set_up_logging_panic_on_err(logging_dir string, filename string, logfileprefix string, maxlogfilesize_bytes int64, directorymaxsize_bytes int64, copy_to_stdout bool) {
 	create_logging_dir_if_not_exists(logging_dir)
 	// check log file name
 	err := web_types.Posix_filename_validator(filename)
@@ -274,7 +285,7 @@ func Set_up_logging_panic_on_err(logging_dir string, filename string, logfilepre
 	filename = filepath.Base(filename)
 	// use proper path combination
 	logfilepath := filepath.Join(logging_dir, filename)
-	logger := NewRotateWriter(logfilepath, logging_dir, logfileprefix, maxlogfilesize_bytes, directorymaxsize_bytes)
+	logger := NewRotateWriter(logfilepath, logging_dir, logfileprefix, maxlogfilesize_bytes, directorymaxsize_bytes, copy_to_stdout)
 	log.SetFlags(log.Llongfile) // tell the logger to only log the file name where the log.print function is called, we'll add in the date manually.
 
 	log.SetOutput(logger)
