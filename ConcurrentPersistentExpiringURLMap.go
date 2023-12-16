@@ -9,10 +9,12 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"sync"
 	"time"
 )
 
 type ConcurrentExpiringPersistentURLMap struct {
+	mut                           sync.Mutex
 	slice_storage                 map[int]*RandomBag64
 	map_storage                   *ConcurrentExpiringMap
 	b53m                          *Base53IDManager
@@ -48,6 +50,9 @@ func (p People) Swap(i, j int) {
 }
 
 func (manager *ConcurrentExpiringPersistentURLMap) PrintInternalState() {
+	manager.mut.Lock()
+	defer manager.mut.Unlock()
+
 	log.Println(" ============ Printing CCPUM internal state ===========")
 	log.Println("Printing slice_storage:")
 	for k, v := range manager.slice_storage {
@@ -68,16 +73,25 @@ func (manager *ConcurrentExpiringPersistentURLMap) PrintInternalState() {
 }
 
 func (manager *ConcurrentExpiringPersistentURLMap) NumItems() int { //nolint:ireturn // is ok
+	manager.mut.Lock()
+	defer manager.mut.Unlock()
+
 	return manager.map_storage.NumItems()
 }
 
 func (manager *ConcurrentExpiringPersistentURLMap) GetEntry(short_url string) (MapItem, error) { //nolint:ireturn // is ok
+	manager.mut.Lock()
+	defer manager.mut.Unlock()
+
 	val, err := GetEntryCommon(manager.map_storage, short_url)
 	return val, err
 }
 
 // Shorten long URL into short URL and return the short URL and store the entry both in map and on disk
 func (manager *ConcurrentExpiringPersistentURLMap) PutEntry(requested_length int, long_url string, expiry_time int64) (string, error) {
+	manager.mut.Lock()
+	defer manager.mut.Unlock()
+
 	val, err := PutEntry_Common(requested_length, long_url, expiry_time, manager.generate_strings_up_to, manager.slice_storage, manager.map_storage, manager.b53m, manager.lbses, manager.map_size_persister)
 	return val, err
 }
@@ -127,6 +141,7 @@ func CreateConcurrentExpiringPersistentURLMapFromDisk(cepum_params *CEPUMParams)
 	concurrent_map, map_size_persister := LoadStoredRecordsFromDisk(&params)
 
 	manager := ConcurrentExpiringPersistentURLMap{ //nolint:forcetypeassert // just let it crash.
+		mut:                           sync.Mutex{},
 		slice_storage:                 slice_storage,
 		map_storage:                   concurrent_map.(*ConcurrentExpiringMap),
 		b53m:                          cepum_params.B53m,
@@ -144,11 +159,13 @@ func CreateConcurrentExpiringPersistentURLMapFromDisk(cepum_params *CEPUMParams)
 
 // Removed expired URLs from map in RAM every x seconds
 func (manager *ConcurrentExpiringPersistentURLMap) RemoveAllExpiredURLsFromRAM() {
+	// Don't need lock here because cem has lock
 	manager.map_storage.Remove_All_Expired(manager.extra_keeparound_seconds_ram)
 }
 
 // Removed expired URLs from disk every x seconds
 func (manager *ConcurrentExpiringPersistentURLMap) RemoveAllExpiredURLsFromDisk() {
+	// Don't need lock here because lbses has lock
 	manager.lbses.DeleteExpiredLogFiles(manager.extra_keeparound_seconds_disk)
 }
 
