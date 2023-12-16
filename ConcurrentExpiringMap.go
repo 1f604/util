@@ -242,6 +242,9 @@ func (e KeyAlreadyExistsError) Error() string {
 }
 
 func (cem *ConcurrentExpiringMap) NumItems() int {
+	cem.mut.Lock()
+	defer cem.mut.Unlock()
+
 	return len(cem.m)
 }
 
