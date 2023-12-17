@@ -22,14 +22,15 @@ func LBSES_Get_bucket_filename(timestamp int64) string {
 	return "bucket_expires_before-" + Int64_to_string(timestamp) + ".log"
 }
 
+var g_bucket_name_pattern = `^bucket_expires_before-([0-9]+)\.log$`
+var g_bucket_name_regex = regexp.MustCompile(g_bucket_name_pattern)
+
 func LBSES_Parse_bucket_filename_to_timestamp(filename string) (int64, error) {
 	// use capture groups
-	bucket_name_pattern := `^bucket_expires_before-([0-9]+)\.log$`
-	bucket_name_regex := regexp.MustCompile(bucket_name_pattern)
 
 	// caps is a slice of strings, where caps[0] matches the whole match
 	// caps[1] == "202" etc
-	matches := bucket_name_regex.FindStringSubmatch(filename)
+	matches := g_bucket_name_regex.FindStringSubmatch(filename)
 	if matches == nil {
 		return -1, errors.New("Failed to parse bucket")
 	}

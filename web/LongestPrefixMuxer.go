@@ -140,13 +140,11 @@ func (mux *LongestPrefixRouter) ServeHTTP(w http.ResponseWriter, r *http.Request
 	}
 
 	// Reject invalid URL paths
-	/*
-		if !IsValidURL(r.URL.Path) {
-			log.Printf("URL path %s is invalid.", r.URL.Path)
-			http.Error(w, "MyCustomMuxer says: Invalid URL path.", http.StatusBadRequest)
-			return
-		}
-	*/
+	if !IsValidURL(r.URL.Path) {
+		log.Printf("URL path %s is invalid.", r.URL.Path)
+		http.Error(w, "MyCustomMuxer says: Invalid URL path.", http.StatusBadRequest)
+		return
+	}
 
 	h := mux.match(r.Host, r.URL.Path) // Will return default handler if no match found
 	h.ServeHTTP(w, r)

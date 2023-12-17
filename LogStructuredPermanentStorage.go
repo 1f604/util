@@ -121,14 +121,15 @@ func (lsps *LogStructuredPermanentStorage) AppendNewEntry(key string, value stri
 	return Write_Entry_To_File(key, value, generation_time_unix, lsps.current_log_file_handle)
 }
 
+var g_lsps_log_name_pattern = `^([0-9]+)\.log$`
+var g_lsps_log_name_regex = regexp.MustCompile(g_lsps_log_name_pattern)
+
 func LSPS_Parse_log_filename_to_number(filename string) (int64, error) {
 	// use capture groups
-	bucket_name_pattern := `^([0-9]+)\.log$`
-	bucket_name_regex := regexp.MustCompile(bucket_name_pattern)
 
 	// caps is a slice of strings, where caps[0] matches the whole match
 	// caps[1] == "202" etc
-	matches := bucket_name_regex.FindStringSubmatch(filename)
+	matches := g_lsps_log_name_regex.FindStringSubmatch(filename)
 	if matches == nil {
 		return -1, errors.New("Failed to parse file name")
 	}
