@@ -19,6 +19,7 @@ type ConcurrentExpiringPersistentURLMap struct {
 	map_storage                   *ConcurrentExpiringMap
 	b53m                          *Base53IDManager
 	lbses                         *LogBucketStructuredExpiringStorage
+	ebs                           *ExpiringBucketStorage
 	generate_strings_up_to        int
 	extra_keeparound_seconds_ram  int64
 	extra_keeparound_seconds_disk int64
@@ -92,21 +93,24 @@ func (manager *ConcurrentExpiringPersistentURLMap) PutEntry(requested_length int
 	manager.mut.Lock()
 	defer manager.mut.Unlock()
 
-	val, err := PutEntry_Common(requested_length, long_url, value_type, expiry_time, manager.generate_strings_up_to, manager.slice_storage, manager.map_storage, manager.b53m, manager.lbses, manager.map_size_persister)
+	val, err := PutEntry_Common(requested_length, long_url, value_type, expiry_time, manager.generate_strings_up_to, manager.slice_storage, manager.map_storage, manager.b53m, manager.lbses, manager.ebs, manager.map_size_persister)
 	return val, err
 }
 
 type CEPUMParams struct {
-	Expiry_check_interval_seconds_ram  int
-	Expiry_check_interval_seconds_disk int
-	Extra_keeparound_seconds_ram       int64
-	Extra_keeparound_seconds_disk      int64
-	Bucket_interval                    int64
-	Bucket_directory_path_absolute     string
-	Size_file_path_absolute            string
-	B53m                               *Base53IDManager
-	Size_file_rounded_multiple         int64
-	Generate_strings_up_to             int
+	Expiry_check_interval_seconds_ram    int
+	Expiry_check_interval_seconds_disk   int
+	Extra_keeparound_seconds_ram         int64
+	Extra_keeparound_seconds_disk        int64
+	Paste_extra_keeparound_seconds_disk  int64
+	Bucket_interval                      int64
+	Paste_bucket_interval                int64
+	Bucket_directory_path_absolute       string
+	Paste_bucket_directory_path_absolute string
+	Size_file_path_absolute              string
+	B53m                                 *Base53IDManager
+	Size_file_rounded_multiple           int64
+	Generate_strings_up_to               int
 }
 
 // This is the one you want to use in production
@@ -119,6 +123,7 @@ func CreateConcurrentExpiringPersistentURLMapFromDisk(cepum_params *CEPUMParams)
 	expiry_callback := _internal_get_cem_expiry_callback(&slice_storage, cepum_params.Generate_strings_up_to) // this won't get called until much later so it's okay...
 
 	lbses := NewLogBucketStructuredExpiringStorage(cepum_params.Bucket_interval, cepum_params.Bucket_directory_path_absolute)
+	ebs := NewExpiringBucketStorage(cepum_params.Paste_bucket_interval, cepum_params.Paste_bucket_directory_path_absolute, cepum_params.Paste_extra_keeparound_seconds_disk)
 	// delete expired log files on startup
 	lbses.DeleteExpiredLogFiles(cepum_params.Extra_keeparound_seconds_disk)
 
@@ -146,6 +151,7 @@ func CreateConcurrentExpiringPersistentURLMapFromDisk(cepum_params *CEPUMParams)
 		map_storage:                   concurrent_map.(*ConcurrentExpiringMap),
 		b53m:                          cepum_params.B53m,
 		lbses:                         lbses,
+		ebs:                           ebs,
 		extra_keeparound_seconds_ram:  cepum_params.Extra_keeparound_seconds_ram,
 		extra_keeparound_seconds_disk: cepum_params.Extra_keeparound_seconds_disk,
 		generate_strings_up_to:        cepum_params.Generate_strings_up_to,

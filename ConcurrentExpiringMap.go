@@ -52,8 +52,8 @@ func (emi *ExpiringMapItem) GetExpiryTime() int64 {
 
 func (emi *ExpiringMapItem) GetType() MapItemType {
 	return MapItemType{
-		isTemporary: true,
-		valueType:   emi.itemValueType,
+		IsTemporary: true,
+		ValueType:   emi.itemValueType,
 	}
 }
 
