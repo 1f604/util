@@ -17,6 +17,7 @@ type ConcurrentPersistentPermanentURLMap struct {
 	urlmap                 *ConcurrentPermanentMap
 	b53m                   *Base53IDManager
 	lsps                   *LogStructuredPermanentStorage
+	pbs                    *PermanentBucketStorage
 	generate_strings_up_to int
 	map_size_persister     *MapSizeFileManager
 }
@@ -55,23 +56,26 @@ func (manager *ConcurrentPersistentPermanentURLMap) PutEntry(requested_length in
 	defer manager.mut.Unlock()
 
 	cur_unix_timestamp := time.Now().Unix()
-	val, err := PutEntry_Common(requested_length, long_url, value_type, cur_unix_timestamp, manager.generate_strings_up_to, manager.slice_map, manager.urlmap, manager.b53m, manager.lsps, manager.map_size_persister)
+
+	val, err := PutEntry_Common(requested_length, long_url, value_type, cur_unix_timestamp, manager.generate_strings_up_to, manager.slice_map, manager.urlmap, manager.b53m, manager.lsps, manager.pbs, manager.map_size_persister)
 	return val, err
 }
 
 type CPPUMParams struct {
-	Log_directory_path_absolute string
-	B53m                        *Base53IDManager
-	Generate_strings_up_to      int
-	Log_file_max_size_bytes     int64
-	Size_file_rounded_multiple  int64
-	Size_file_path_absolute     string
+	Log_directory_path_absolute    string
+	Bucket_directory_path_absolute string
+	B53m                           *Base53IDManager
+	Generate_strings_up_to         int
+	Log_file_max_size_bytes        int64
+	Size_file_rounded_multiple     int64
+	Size_file_path_absolute        string
 }
 
 // This is the one you want to use in production
 func CreateConcurrentPersistentPermanentURLMapFromDisk(cppum_params *CPPUMParams) *ConcurrentPersistentPermanentURLMap {
 	slice_storage := make(map[int]*RandomBag64)
 	lsps := NewLogStructuredPermanentStorage(cppum_params.Log_file_max_size_bytes, cppum_params.Log_directory_path_absolute)
+	pbs := NewPermanentBucketStorage(cppum_params.Bucket_directory_path_absolute)
 	var nil_map_ptr *ConcurrentPermanentMap = nil
 
 	// Now load from each file into the map
@@ -96,6 +100,7 @@ func CreateConcurrentPersistentPermanentURLMapFromDisk(cppum_params *CPPUMParams
 		urlmap:                 concurrent_map.(*ConcurrentPermanentMap),
 		b53m:                   cppum_params.B53m,
 		lsps:                   lsps,
+		pbs:                    pbs,
 		generate_strings_up_to: cppum_params.Generate_strings_up_to,
 		map_size_persister:     map_size_persister,
 	}

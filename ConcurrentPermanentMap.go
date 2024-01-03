@@ -33,8 +33,8 @@ func (pmi *PermanentMapItem) GetValue() string {
 
 func (pmi *PermanentMapItem) GetType() MapItemType {
 	return MapItemType{
-		isTemporary: false,
-		valueType:   pmi.itemValueType,
+		IsTemporary: false,
+		ValueType:   pmi.itemValueType,
 	}
 }
 
