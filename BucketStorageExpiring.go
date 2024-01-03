@@ -25,9 +25,7 @@ import (
 
 type ExpiringBucketStorage struct {
 	mut                            sync.Mutex
-	bucket_interval                int64
 	bucket_directory_path_absolute string
-	extra_keeparound_seconds_disk  int64
 }
 
 // the bucket interval is the all-important parameter that determines the number of buckets and when buckets will be deleted
@@ -41,7 +39,7 @@ type ExpiringBucketStorage struct {
 // e.g. if bucket interval is 200, then all timestamps from 1200 to 1400 will go into bucket 7, all timestamps from 1400 to 1600 will go to bucket 8 and so on.
 // e.g. if bucket interval is 200, then bucket 200 holds all timestamps 0-199, bucket 400 holds all timestamps 200-399, bucket 600 holds 400-599, and so on.
 // bucket files are named "expires_before_18400" where the last number is a unix timestamp
-func NewExpiringBucketStorage(bucket_interval int64, bucket_directory_path_absolute string, extra_keeparound_seconds_disk int64) *ExpiringBucketStorage {
+func NewExpiringBucketStorage(bucket_interval int64, bucket_directory_path_absolute string) *ExpiringBucketStorage {
 	// check if bucket directory exists
 	// create it if it doesn't exist.
 	err := os.MkdirAll(bucket_directory_path_absolute, os.ModePerm)
@@ -52,9 +50,7 @@ func NewExpiringBucketStorage(bucket_interval int64, bucket_directory_path_absol
 
 	return &ExpiringBucketStorage{
 		mut:                            sync.Mutex{},
-		bucket_interval:                bucket_interval,
 		bucket_directory_path_absolute: bucket_directory_path_absolute,
-		extra_keeparound_seconds_disk:  extra_keeparound_seconds_disk,
 	}
 }
 
