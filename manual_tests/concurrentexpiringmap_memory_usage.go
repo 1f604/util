@@ -51,7 +51,7 @@ func main() {
 	for j := 20; j < 30; j++ {
 		for i := 0; i < 1000000; i++ {
 			keystr := util.Int64_to_string(int64(j)) + "$" + util.Int64_to_string(int64(i))
-			cem.Put_New_Entry(keystr, keystr+value_string, cur_time)
+			cem.Put_New_Entry(keystr, keystr+value_string, cur_time, util.TYPE_MAP_ITEM_URL)
 		}
 		// Force GC to clear up, should see a memory drop
 		runtime.GC()

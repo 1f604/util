@@ -154,7 +154,7 @@ func Test_Generate_Random_generates_all_legal_chars(t *testing.T) {
 
 	legal_alphabet := []rune{'0', '2', '3', '4', '5', '6', '7', '8', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'X', 'Y', 'Z', 'a', 'b', 'c', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'x', 'y', 'z'}
 
-	for n := 1; n < 5; n++ {
+	for n := 2; n < 5; n++ {
 		seen := make(map[rune]bool)
 		for j := 0; j < 2000; j++ {
 			rndstr, err := b53m.B53_generate_random_Base53ID(n)

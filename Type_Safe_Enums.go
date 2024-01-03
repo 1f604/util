@@ -4,14 +4,14 @@
 package util
 
 type HandlerTypeEnum interface {
-	isHandlerTypeEnumValue()
+	isHandlerEnumTypeValue()
 }
 
 type LONGEST_PREFIX_HANDLER_t struct{}
 type EXACT_MATCH_HANDLER_t struct{}
 
-func (LONGEST_PREFIX_HANDLER_t) isHandlerTypeEnumValue() {}
-func (EXACT_MATCH_HANDLER_t) isHandlerTypeEnumValue()    {}
+func (LONGEST_PREFIX_HANDLER_t) isHandlerEnumTypeValue() {}
+func (EXACT_MATCH_HANDLER_t) isHandlerEnumTypeValue()    {}
 
 var EXACT_MATCH_HANDLER EXACT_MATCH_HANDLER_t = EXACT_MATCH_HANDLER_t{}
 var LONGEST_PREFIX_HANDLER LONGEST_PREFIX_HANDLER_t = LONGEST_PREFIX_HANDLER_t{}
@@ -28,3 +28,23 @@ default:
     return fmt.Errorf("unsupported num value %T", val)
 }
 */
+
+type MapItemValueType interface {
+	isMapItemEnumTypeValue()
+	ToString() string
+}
+
+type URL_TYPE_t struct{}
+type PASTE_TYPE_t struct{}
+
+func (URL_TYPE_t) isMapItemEnumTypeValue()   {}
+func (PASTE_TYPE_t) isMapItemEnumTypeValue() {}
+func (URL_TYPE_t) ToString() string {
+	return "url"
+}
+func (PASTE_TYPE_t) ToString() string {
+	return "paste"
+}
+
+var TYPE_MAP_ITEM_URL URL_TYPE_t = URL_TYPE_t{}
+var TYPE_MAP_ITEM_PASTE PASTE_TYPE_t = PASTE_TYPE_t{}

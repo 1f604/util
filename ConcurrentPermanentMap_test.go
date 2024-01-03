@@ -13,7 +13,7 @@ func Test_ConcurrentPermanentMap(t *testing.T) {
 	t.Parallel()
 
 	cpm := util.NewEmptyConcurrentPermanentMap()
-	cpm.Put_New_Entry("key!", "value!", 0)
+	cpm.Put_New_Entry("key!", "value!", 0, util.TYPE_MAP_ITEM_URL)
 
 	_, err := cpm.Get_Entry("key")
 	util.Assert_error_equals(t, err, "ConcurrentPermanentMap: nonexistent key", 1)

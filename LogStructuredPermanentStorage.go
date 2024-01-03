@@ -89,7 +89,7 @@ func NewLogStructuredPermanentStorage(log_file_max_size int64, log_directory_pat
 // Adds a new entry to the log file
 //
 // Also important: Make sure the input does not contain carriage return or newline.
-func (lsps *LogStructuredPermanentStorage) AppendNewEntry(key string, value string, generation_time_unix int64) error {
+func (lsps *LogStructuredPermanentStorage) AppendNewEntry(key string, value string, value_type MapItemValueType, generation_time_unix int64) error {
 	lsps.directory_lock.Lock()
 	defer lsps.directory_lock.Unlock()
 	// Write to the log file unless the log file size is too big, in which case we create a new log file and write to that one
@@ -118,7 +118,7 @@ func (lsps *LogStructuredPermanentStorage) AppendNewEntry(key string, value stri
 		lsps.current_log_filepath = new_file_path
 		lsps.current_log_file_handle = fh
 	}
-	return Write_Entry_To_File(key, value, generation_time_unix, lsps.current_log_file_handle)
+	return Write_Entry_To_File(key, value, value_type, generation_time_unix, lsps.current_log_file_handle)
 }
 
 var g_lsps_log_name_pattern = `^([0-9]+)\.log$`

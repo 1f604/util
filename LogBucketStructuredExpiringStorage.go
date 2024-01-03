@@ -54,7 +54,7 @@ func NewLogBucketStructuredExpiringStorage(bucket_interval int64, bucket_directo
 // Adds a new entry to the log file
 //
 // Also important: Make sure the input does not contain carriage return or newline.
-func (lbses *LogBucketStructuredExpiringStorage) AppendNewEntry(key string, value string, expiry_time int64) error {
+func (lbses *LogBucketStructuredExpiringStorage) AppendNewEntry(key string, value string, value_type MapItemValueType, expiry_time int64) error {
 	lbses.directory_lock.Lock()
 	defer lbses.directory_lock.Unlock()
 	// Don't check for expiry time
@@ -71,7 +71,7 @@ func (lbses *LogBucketStructuredExpiringStorage) AppendNewEntry(key string, valu
 		log.Fatal(err)
 		panic(err)
 	}
-	err = Write_Entry_To_File(key, value, expiry_time, f)
+	err = Write_Entry_To_File(key, value, value_type, expiry_time, f)
 	if err != nil {
 		return err
 	}

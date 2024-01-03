@@ -32,7 +32,8 @@ type ExpiringHeapItem struct {
 }
 
 type ExpiringMapItem struct {
-	value string // The actual value of the item; arbitrary.
+	value         string           // The actual value of the item; arbitrary.
+	itemValueType MapItemValueType // URL or paste
 	// Yes, expiry_time_unix is duplicated but it's only 8 bytes, using a pointer here wouldn't gain much.
 	expiry_time_unix int64 // When the item expires. This is used as the priority. Doesn't have to be unix time.
 }
@@ -49,8 +50,11 @@ func (emi *ExpiringMapItem) GetExpiryTime() int64 {
 	return emi.expiry_time_unix
 }
 
-func (emi *ExpiringMapItem) GetType() string {
-	return "temporary"
+func (emi *ExpiringMapItem) GetType() MapItemType {
+	return MapItemType{
+		isTemporary: true,
+		valueType:   emi.itemValueType,
+	}
 }
 
 type ExpiryCallback func(string)
@@ -64,7 +68,7 @@ type ConcurrentExpiringMap struct {
 }
 
 // This method properly constructs the object
-func (*ConcurrentExpiringMap) BeginConstruction(stored_map_length int64, expiry_callback ExpiryCallback) ConcurrentMap {
+func (*ConcurrentExpiringMap) BeginConstruction(stored_map_length int64, expiry_callback ExpiryCallback) ConcurrentMap { //nolint:ireturn //ok...
 	m := make(map[string]ExpiringMapItem, stored_map_length)
 	hq := make(ExpiringHeapQueue, 0, stored_map_length)
 	return &ConcurrentExpiringMap{
@@ -76,11 +80,12 @@ func (*ConcurrentExpiringMap) BeginConstruction(stored_map_length int64, expiry_
 }
 
 // Caller must check that the key_str is not already in the map.
-func (cem *ConcurrentExpiringMap) ContinueConstruction(key_str string, value_str string, expiry_time int64) {
+func (cem *ConcurrentExpiringMap) ContinueConstruction(key_str string, value_str string, expiry_time int64, item_value_type MapItemValueType) {
 	// first add it to the map
 	map_item := ExpiringMapItem{
 		value:            value_str,
 		expiry_time_unix: expiry_time,
+		itemValueType:    item_value_type,
 	}
 	cem.m[key_str] = map_item
 
@@ -111,7 +116,7 @@ func NewEmptyConcurrentExpiringMap(expiry_callback ExpiryCallback) *ConcurrentEx
 }
 
 // Will only return an error if the key already exists.
-func (cem *ConcurrentExpiringMap) Put_New_Entry(key string, value string, expiry_time int64) error {
+func (cem *ConcurrentExpiringMap) Put_New_Entry(key string, value string, expiry_time int64, value_type MapItemValueType) error {
 	cem.mut.Lock()
 	defer cem.mut.Unlock()
 	// First check if it's already in the map
@@ -125,6 +130,7 @@ func (cem *ConcurrentExpiringMap) Put_New_Entry(key string, value string, expiry
 	// first add it to the map
 	map_item := ExpiringMapItem{
 		value:            value,
+		itemValueType:    value_type,
 		expiry_time_unix: expiry_time,
 	}
 	cem.m[key] = map_item
@@ -150,6 +156,7 @@ type CEMItem struct {
 
 // batched mode for fast loading from disk
 // Takes around 3.5s to load 10 million items, 300ms for loading 1 million items
+
 func NewConcurrentExpiringMapFromSlice(expiry_callback ExpiryCallback, kv_pairs []CEMItem) *ConcurrentExpiringMap {
 	m := make(map[string]ExpiringMapItem, len(kv_pairs))
 	hq := make(ExpiringHeapQueue, 0, len(kv_pairs))
@@ -162,6 +169,7 @@ func NewConcurrentExpiringMapFromSlice(expiry_callback ExpiryCallback, kv_pairs 
 		// first add it to the map
 		map_item := ExpiringMapItem{
 			value:            value,
+			itemValueType:    TYPE_MAP_ITEM_URL, // TODO: Fix this properly
 			expiry_time_unix: expiry_time,
 		}
 		m[key] = map_item
@@ -252,7 +260,7 @@ func (cem *ConcurrentExpiringMap) GetAllItems() map[string]ExpiringMapItem {
 	return cem.m
 }
 
-func (cem *ConcurrentExpiringMap) Get_Entry(key string) (MapItem, error) {
+func (cem *ConcurrentExpiringMap) Get_Entry(key string) (MapItem, error) { //nolint:ireturn //ok...
 	// 1. acquire read lock
 	cem.mut.Lock()
 	defer cem.mut.Unlock()
