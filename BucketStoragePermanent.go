@@ -35,9 +35,10 @@ type PermanentBucketStorage struct {
 // bucket files are named "expires_before_18400" where the last number is a unix timestamp
 func NewPermanentBucketStorage(bucket_directory_path_absolute string) *PermanentBucketStorage {
 	// check if bucket directory exists
-	_, err := os.Stat(bucket_directory_path_absolute)
+	// create it if it doesn't exist.
+	err := os.MkdirAll(bucket_directory_path_absolute, os.ModePerm)
 	if err != nil {
-		log.Fatal("Fatal error: Could not stat bucket directory:", err)
+		log.Fatal("Fatal error: Could not create directory:", err)
 		panic(err)
 	}
 
