@@ -20,8 +20,8 @@ import (
 )
 
 type MapItemType struct {
-	isTemporary bool // if it's not temporary then it's permanent
-	valueType   MapItemValueType
+	IsTemporary bool // if it's not temporary then it's permanent
+	ValueType   MapItemValueType
 }
 
 type MapItem interface {
