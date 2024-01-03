@@ -13,7 +13,8 @@ type ConcurrentPermanentMap struct {
 }
 
 type PermanentMapItem struct {
-	value string
+	value         string
+	itemValueType MapItemValueType // URL or paste
 }
 
 type CPMNonExistentKeyError struct{}
@@ -30,8 +31,11 @@ func (pmi *PermanentMapItem) GetValue() string {
 	return pmi.value
 }
 
-func (pmi *PermanentMapItem) GetType() string {
-	return "permanent"
+func (pmi *PermanentMapItem) GetType() MapItemType {
+	return MapItemType{
+		isTemporary: false,
+		valueType:   pmi.itemValueType,
+	}
 }
 
 func (emi *PermanentMapItem) GetExpiryTime() int64 {
@@ -55,15 +59,18 @@ func (*ConcurrentPermanentMap) BeginConstruction(stored_map_length int64, expiry
 }
 
 // Caller must check that the key_str is not already in the map.
-func (cpm *ConcurrentPermanentMap) ContinueConstruction(key_str string, value_str string, expiry_time int64) {
+func (cpm *ConcurrentPermanentMap) ContinueConstruction(key_str string, value_str string, expiry_time int64, item_value_type MapItemValueType) {
 	// just add it to the map
-	cpm.m[string(key_str)] = PermanentMapItem{value_str}
+	cpm.m[string(key_str)] = PermanentMapItem{
+		value:         value_str,
+		itemValueType: item_value_type,
+	}
 }
 
 func (cpm *ConcurrentPermanentMap) FinishConstruction() {} // Does nothing.
 
 // Returns an error if the entry already exists, otherwise returns nil.
-func (cpm *ConcurrentPermanentMap) Put_New_Entry(key string, value string, _ int64) error {
+func (cpm *ConcurrentPermanentMap) Put_New_Entry(key string, value string, _ int64, item_value_type MapItemValueType) error {
 	cpm.mut.Lock()
 	defer cpm.mut.Unlock()
 
@@ -73,7 +80,10 @@ func (cpm *ConcurrentPermanentMap) Put_New_Entry(key string, value string, _ int
 		return errors.New("Entry already exists!!")
 	}
 
-	cpm.m[key] = PermanentMapItem{value}
+	cpm.m[key] = PermanentMapItem{
+		value:         value,
+		itemValueType: item_value_type,
+	}
 	return nil
 }
 

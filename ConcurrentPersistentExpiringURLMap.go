@@ -88,11 +88,11 @@ func (manager *ConcurrentExpiringPersistentURLMap) GetEntry(short_url string) (M
 }
 
 // Shorten long URL into short URL and return the short URL and store the entry both in map and on disk
-func (manager *ConcurrentExpiringPersistentURLMap) PutEntry(requested_length int, long_url string, expiry_time int64) (string, error) {
+func (manager *ConcurrentExpiringPersistentURLMap) PutEntry(requested_length int, long_url string, expiry_time int64, value_type MapItemValueType) (string, error) {
 	manager.mut.Lock()
 	defer manager.mut.Unlock()
 
-	val, err := PutEntry_Common(requested_length, long_url, expiry_time, manager.generate_strings_up_to, manager.slice_storage, manager.map_storage, manager.b53m, manager.lbses, manager.map_size_persister)
+	val, err := PutEntry_Common(requested_length, long_url, value_type, expiry_time, manager.generate_strings_up_to, manager.slice_storage, manager.map_storage, manager.b53m, manager.lbses, manager.map_size_persister)
 	return val, err
 }
 

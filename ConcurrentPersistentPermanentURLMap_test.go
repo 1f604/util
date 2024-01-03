@@ -26,6 +26,6 @@ func Test_CPPUM_AddRestartReload(t *testing.T) {
 
 	cppum := util.CreateConcurrentPersistentPermanentURLMapFromDisk(&cppum_params)
 
-	val, err := cppum.PutEntry(2, "google.com", 0)
+	val, err := cppum.PutEntry(2, "google.com", 0, util.TYPE_MAP_ITEM_URL)
 	log.Println(val, err)
 }

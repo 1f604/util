@@ -11,6 +11,7 @@ func (e RandomBagEmptyError) Error() string {
 }
 
 type RandomBag64 struct {
+	
 	arr []uint64
 }
 

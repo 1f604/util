@@ -171,7 +171,7 @@ func Copy_Slice_Into_150_Arr(slice []byte, arr [150]byte) {
 }
 
 // Returns random string consisting of letters and numbers
-func Crypto_RandString(length int) string {
+func Crypto_Rand_Base64String(length int) string {
 	buf := make([]byte, length)
 	_, err := rand.Read(buf)
 	if err != nil {
@@ -180,6 +180,75 @@ func Crypto_RandString(length int) string {
 	}
 	// The slice should now contain random bytes instead of only zeroes.
 	return b64.StdEncoding.EncodeToString(buf)
+}
+
+// Character class lookup table
+var IsAlnum = [256]byte{
+	/* 00-07  NUL, SOH, STX, ETX, EOT, ENQ, ACK, BEL */ 0, 0, 0, 0, 0, 0, 0, 0,
+	/* 08-0F  BS,  HT,  LF,  VT,  FF,  CR,  SO,  SI  */ 0, 0, 0, 0, 0, 0, 0, 0,
+	/* 10-17  DLE, DC1, DC2, DC3, DC4, NAK, SYN, ETB */ 0, 0, 0, 0, 0, 0, 0, 0,
+	/* 18-1F  CAN, EM,  SUB, ESC, FS,  GS,  RS,  US  */ 0, 0, 0, 0, 0, 0, 0, 0,
+	/* 21-27  SP ! " # $ % & '   */ 0, 0, 0, 0, 0, 0, 0, 0,
+	/* 28-2F   ( ) * + , - . /   */ 0, 0, 0, 0, 0, 0, 0, 0,
+	/* 30-37   0 1 2 3 4 5 6 7   */ 1, 1, 1, 1, 1, 1, 1, 1,
+	/* 38-3F   8 9 : ; < = > ?   */ 1, 1, 0, 0, 0, 0, 0, 0,
+	/* 40-47   @ A B C D E F G   */ 0, 1, 1, 1, 1, 1, 1, 1,
+	/* 48-4F   H I J K L M N O   */ 1, 1, 1, 1, 1, 1, 1, 1,
+	/* 50-57   P Q R S T U V W   */ 1, 1, 1, 1, 1, 1, 1, 1,
+	/* 58-5F   X Y Z [ \ ] ^ _   */ 1, 1, 1, 0, 0, 0, 0, 0,
+	/* 60-67   ` a b c d e f g   */ 0, 1, 1, 1, 1, 1, 1, 1,
+	/* 68-6F   h i j k l m n o   */ 1, 1, 1, 1, 1, 1, 1, 1,
+	/* 70-77   p q r s t u v w   */ 1, 1, 1, 1, 1, 1, 1, 1,
+	/* 78-7F   x y z { | } ~ DEL */ 1, 1, 1, 0, 0, 0, 0, 0,
+	/* 80-87 */ 0, 0, 0, 0, 0, 0, 0, 0,
+	/* 88-8B */ 0, 0, 0, 0, 0, 0, 0, 0,
+	/* 90-97 */ 0, 0, 0, 0, 0, 0, 0, 0,
+	/* 98-9F */ 0, 0, 0, 0, 0, 0, 0, 0,
+	/* A0-A7 */ 0, 0, 0, 0, 0, 0, 0, 0,
+	/* A8-AF */ 0, 0, 0, 0, 0, 0, 0, 0,
+	/* B0-B7 */ 0, 0, 0, 0, 0, 0, 0, 0,
+	/* B8-BF */ 0, 0, 0, 0, 0, 0, 0, 0,
+	/* C0-C7 */ 0, 0, 0, 0, 0, 0, 0, 0,
+	/* C8-CF */ 0, 0, 0, 0, 0, 0, 0, 0,
+	/* D0-D7 */ 0, 0, 0, 0, 0, 0, 0, 0,
+	/* D8-DF */ 0, 0, 0, 0, 0, 0, 0, 0,
+	/* E0-E7 */ 0, 0, 0, 0, 0, 0, 0, 0,
+	/* E8-EF */ 0, 0, 0, 0, 0, 0, 0, 0,
+	/* F0-F7 */ 0, 0, 0, 0, 0, 0, 0, 0,
+	/* F8-FF */ 0, 0, 0, 0, 0, 0, 0, 0,
+}
+
+// Returns random string consisting of letters and numbers
+func Crypto_Rand_Alnum_String(length int) string {
+	// Just keep grabbing more randomness until we have enough
+	// This rejection sampling approach is extremely wasteful but it's simple
+	if length < 1 {
+		return ""
+	}
+	result := make([]byte, 0, length)
+	for count := 0; count < 10; count++ {
+		// fmt.Println("Iterating...")
+		buf := make([]byte, length)
+		_, err := rand.Read(buf)
+		if err != nil {
+			log.Fatal("error reading crypto random:", err)
+			panic("error reading crypto random:" + err.Error())
+		}
+		// The slice should now contain random bytes instead of only zeroes.
+		b64string := b64.StdEncoding.EncodeToString(buf)
+		// fmt.Println("len(b64string):", len(b64string))
+		for i := range b64string {
+			if IsAlnum[b64string[i]] == 1 {
+				result = append(result, b64string[i])
+				// fmt.Println("Adding character:", string(b64string[i]))
+				if len(result) == length {
+					return string(result)
+				}
+			}
+		}
+	}
+	log.Fatal("Failed to generate random string")
+	panic("This shouldn't happen")
 }
 
 // This function works, I've manually tested it.

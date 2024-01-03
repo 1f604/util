@@ -28,12 +28,12 @@ func Test_ConcurrentExpiringMap(t *testing.T) {
 
 	cem := util.NewEmptyConcurrentExpiringMap(nil)
 	for key, expiry_time := range items {
-		err = cem.Put_New_Entry(key, util.Int64_to_string(expiry_time), expiry_time)
+		err = cem.Put_New_Entry(key, util.Int64_to_string(expiry_time), expiry_time, util.TYPE_MAP_ITEM_URL)
 		util.Assert_no_error(t, err, 1)
 	}
 
 	// Try to insert something that has already been inserted
-	err = cem.Put_New_Entry("banana", "key", cur_time+9999)
+	err = cem.Put_New_Entry("banana", "key", cur_time+9999, util.TYPE_MAP_ITEM_URL)
 	util.Assert_error_equals(t, err, "ConcurrentExpiringMap: key already exists", 1)
 
 	// Try to fetch something that hasn't been expired
@@ -68,9 +68,9 @@ func Test_ConcurrentExpiringMap(t *testing.T) {
 	util.Assert_error_equals(t, err, "ConcurrentExpiringMap: nonexistent key", 1)
 
 	// Insert new items
-	_ = cem.Put_New_Entry("oranges", util.Int64_to_string(cur_time-1), cur_time-1)
-	_ = cem.Put_New_Entry("squares", util.Int64_to_string(cur_time-2), cur_time-2)
-	_ = cem.Put_New_Entry("jeremys", util.Int64_to_string(cur_time-5), cur_time-5)
+	_ = cem.Put_New_Entry("oranges", util.Int64_to_string(cur_time-1), cur_time-1, util.TYPE_MAP_ITEM_URL)
+	_ = cem.Put_New_Entry("squares", util.Int64_to_string(cur_time-2), cur_time-2, util.TYPE_MAP_ITEM_URL)
+	_ = cem.Put_New_Entry("jeremys", util.Int64_to_string(cur_time-5), cur_time-5, util.TYPE_MAP_ITEM_URL)
 
 	// Remove expired items
 	cem.Remove_All_Expired(3)
@@ -133,6 +133,7 @@ func Test_ConcurrentExpiringMap_LoadEntriesBulk(t *testing.T) {
 	util.Assert_error_equals(t, err, "ConcurrentExpiringMap: key expired", 1)
 	_, err = cem.Get_Entry("oranges")
 	util.Assert_error_equals(t, err, "ConcurrentExpiringMap: key expired", 1)
+
 }
 
 func Test_ConcurrentExpiringMap_Expiry_Callback(t *testing.T) {
@@ -158,12 +159,12 @@ func Test_ConcurrentExpiringMap_Expiry_Callback(t *testing.T) {
 
 	cem := util.NewEmptyConcurrentExpiringMap(expiry_callback)
 	for key, expiry_time := range items {
-		err = cem.Put_New_Entry(key, util.Int64_to_string(expiry_time), expiry_time)
+		err = cem.Put_New_Entry(key, util.Int64_to_string(expiry_time), expiry_time, util.TYPE_MAP_ITEM_URL)
 		util.Assert_no_error(t, err, 1)
 	}
 
 	// Try to insert something that has already been inserted
-	err = cem.Put_New_Entry("banana", "key", cur_time+9999)
+	err = cem.Put_New_Entry("banana", "key", cur_time+9999, util.TYPE_MAP_ITEM_URL)
 	util.Assert_error_equals(t, err, "ConcurrentExpiringMap: key already exists", 1)
 
 	// Try to fetch something that hasn't been expired
@@ -204,9 +205,9 @@ func Test_ConcurrentExpiringMap_Expiry_Callback(t *testing.T) {
 	util.Assert_error_equals(t, err, "ConcurrentExpiringMap: nonexistent key", 1)
 
 	// Insert new items
-	_ = cem.Put_New_Entry("oranges", "a", cur_time-1)
-	_ = cem.Put_New_Entry("squares", "a", cur_time-2)
-	_ = cem.Put_New_Entry("jeremys", "a", cur_time-5)
+	_ = cem.Put_New_Entry("oranges", "a", cur_time-1, util.TYPE_MAP_ITEM_URL)
+	_ = cem.Put_New_Entry("squares", "a", cur_time-2, util.TYPE_MAP_ITEM_URL)
+	_ = cem.Put_New_Entry("jeremys", "a", cur_time-5, util.TYPE_MAP_ITEM_URL)
 
 	// Remove expired items
 	fmt.Println("outer before expiry2:", outer)

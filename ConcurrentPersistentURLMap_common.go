@@ -19,28 +19,33 @@ import (
 	"strings"
 )
 
+type MapItemType struct {
+	isTemporary bool // if it's not temporary then it's permanent
+	valueType   MapItemValueType
+}
+
 type MapItem interface {
 	MapItemToString() string
 	GetValue() string
 	GetExpiryTime() int64
-	GetType() string
+	GetType() MapItemType
 }
 
 type ConcurrentMap interface {
 	Get_Entry(string) (MapItem, error)
 	BeginConstruction(int64, ExpiryCallback) ConcurrentMap
-	ContinueConstruction(string, string, int64)
+	ContinueConstruction(string, string, int64, MapItemValueType)
 	FinishConstruction()
 	NumItems() int
 }
 
 type URLMap interface {
-	Put_New_Entry(string, string, int64) error
+	Put_New_Entry(string, string, int64, MapItemValueType) error
 	NumItems() int
 }
 
 type LogStorage interface {
-	AppendNewEntry(string, string, int64) error
+	AppendNewEntry(string, string, MapItemValueType, int64) error
 }
 
 func GetEntryCommon(cm ConcurrentMap, short_url string) (MapItem, error) {
@@ -53,7 +58,7 @@ func GetEntryCommon(cm ConcurrentMap, short_url string) (MapItem, error) {
 }
 
 // Shorten long URL into short URL and return the short URL and store the entry both in map and on disk
-func PutEntry_Common(requested_length int, long_url string, timestamp int64, generate_strings_up_to int,
+func PutEntry_Common(requested_length int, long_url string, value_type MapItemValueType, timestamp int64, generate_strings_up_to int,
 	slice_storage map[int]*RandomBag64, urlmap URLMap, b53m *Base53IDManager, log_storage LogStorage, map_size_persister *MapSizeFileManager) (string, error) {
 	if requested_length < 2 { //nolint:gomnd // 2 is not magic here. BASE53 can only go down to 2 characters because it uses one character for the checksum
 		return "", errors.New("Requested length is too small.")
@@ -75,7 +80,7 @@ func PutEntry_Common(requested_length int, long_url string, timestamp int64, gen
 		// At this point, the item has been removed from the slice, so add it to the map.
 		// Add item to the map
 		result_str = Convert_uint64_to_str(item, requested_length)
-		err = urlmap.Put_New_Entry(result_str, long_url, timestamp)
+		err = urlmap.Put_New_Entry(result_str, long_url, timestamp, value_type)
 		if err != nil { // Only possible error is if entry already exists, which it should never do since we got it from the slice.
 			log.Fatal("Put_New_Entry failed. This should never happen. Error:", err)
 			panic("Put_New_Entry failed. This should never happen. Error:" + err.Error())
@@ -92,7 +97,7 @@ func PutEntry_Common(requested_length int, long_url string, timestamp int64, gen
 				panic(err)
 			}
 			result_str = id.GetCombinedString()
-			err = urlmap.Put_New_Entry(result_str, long_url, timestamp)
+			err = urlmap.Put_New_Entry(result_str, long_url, timestamp, value_type)
 			if err == nil {
 				// Successfully put it into the map. Now write it to disk too
 				goto added_item_to_map
@@ -110,7 +115,7 @@ added_item_to_map:
 	// log.Print("urlmap.NumItems():", urlmap.NumItems())
 	map_size_persister.UpdateMapSizeRounded(int64(urlmap.NumItems()))
 	// It's okay if this is slow since it's just a write. Most operations are going to be reads.
-	err := log_storage.AppendNewEntry(result_str, long_url, timestamp)
+	err := log_storage.AppendNewEntry(result_str, long_url, value_type, timestamp)
 	// log.Println("calling log_storage.AppendNewEntry(result_str, long_url, timestamp)")
 	if err != nil {
 		// It should never fail.
@@ -208,19 +213,32 @@ func LoadStoredRecordsFromDisk(params *LSRFD_Params) (ConcurrentMap, *MapSizeFil
 			Check_err(err)
 			md5_base64 = md5_base64[:len(md5_base64)-1] // remove trailing newline
 			parts := strings.Split(string(str_without_hash), "\t")
-			if len(parts) != 3 { //nolint:gomnd // 3 is okay here...
-				log.Fatal("Expected 3 parts (key, value, timestamp), got", len(parts))
+			if len(parts) != 4 { //nolint:gomnd // 3 is okay here...
+				log.Fatal("Expected 4 parts (key, value, type, imestamp), got", len(parts))
 				panic("Got unexpected number of parts")
 			}
 			key_str := parts[0]
 			value_str := parts[1]
-			timestamp_str := parts[2]
+			type_str := parts[2]
+			timestamp_str := parts[3]
 
 			// Check URL ID
 			_, err = params.B53m.NewBase53ID(key_str[:len(key_str)-1], key_str[len(key_str)-1], false)
 			if err != nil {
 				log.Fatal("Invalid URL ID:", key_str, "Error:", err)
 				panic(err)
+			}
+
+			// Check type_str
+			var map_item_type MapItemValueType
+			switch type_str {
+			case "url":
+				map_item_type = TYPE_MAP_ITEM_URL
+			case "paste":
+				map_item_type = TYPE_MAP_ITEM_PASTE
+			default:
+				log.Fatal("Unrecognized value type")
+				panic("Unrecognized value type")
 			}
 
 			// Check md5_base64
@@ -265,7 +283,7 @@ func LoadStoredRecordsFromDisk(params *LSRFD_Params) (ConcurrentMap, *MapSizeFil
 			}
 
 			// Insert it into map (and push it into heap for ConcurrentExpiringMap)
-			concurrent_map.ContinueConstruction(key_str, value_str, timestamp_unix)
+			concurrent_map.ContinueConstruction(key_str, value_str, timestamp_unix, map_item_type)
 		}
 	}
 	// Call heap.Init() for ConcurrentExpiringMap

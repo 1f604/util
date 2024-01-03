@@ -49,7 +49,7 @@ func Compute_String_Checksum(str string) string {
 }
 
 // IMPORTANT: This function DOES NOT close the file handle!!!
-func Write_Entry_To_File(key string, value string, timestamp int64, file_handle *os.File) error {
+func Write_Entry_To_File(key string, value string, value_type MapItemValueType, timestamp int64, file_handle *os.File) error {
 	// Generate the bytes to write to the file
 	// validate key first
 	for _, c := range key {
@@ -64,7 +64,7 @@ func Write_Entry_To_File(key string, value string, timestamp int64, file_handle 
 		}
 	}
 	// we use md5 to detect corruption - 16 bytes is enough.
-	str_to_sum := key + string("\t") + value + string("\t") + Int64_to_string(timestamp)
+	str_to_sum := key + string("\t") + value + string("\t") + value_type.ToString() + string("\t") + Int64_to_string(timestamp)
 	hash_bytes := md5.Sum([]byte(str_to_sum))
 	hash_base64 := b64.StdEncoding.EncodeToString(hash_bytes[:])
 	// convert hash to printable string
