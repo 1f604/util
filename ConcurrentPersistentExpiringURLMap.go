@@ -6,9 +6,6 @@
 package util
 
 import (
-	"fmt"
-	"log"
-	"sort"
 	"sync"
 	"time"
 )
@@ -50,29 +47,30 @@ func (p People) Swap(i, j int) {
 	p[i], p[j] = p[j], p[i]
 }
 
-func (manager *ConcurrentExpiringPersistentURLMap) PrintInternalState() {
-	manager.mut.Lock()
-	defer manager.mut.Unlock()
+/*
+	func (manager *ConcurrentExpiringPersistentURLMap) PrintInternalState() {
+		manager.mut.Lock()
+		defer manager.mut.Unlock()
 
-	log.Println(" ============ Printing CCPUM internal state ===========")
-	log.Println("Printing slice_storage:")
-	for k, v := range manager.slice_storage {
-		log.Println("k,v:", k, *v)
-	}
-	log.Println(manager.map_storage)
-	values := People{}
-	for k, v := range manager.map_storage.m {
-		values = append(values, MapItem2{k, v.value, v.expiry_time_unix})
-	}
-	sort.Sort(values)
-	for k, v := range values {
-		fmt.Println("kv:", k, v)
-	}
-	fmt.Println("time now:", time.Now().Unix())
+		log.Println(" ============ Printing CCPUM internal state ===========")
+		log.Println("Printing slice_storage:")
+		for k, v := range manager.slice_storage {
+			log.Println("k,v:", k, *v)
+		}
+		log.Println(manager.map_storage)
+		values := People{}
+		for k, v := range manager.map_storage.m {
+			values = append(values, MapItem2{k, v.value, v.expiry_time_unix})
+		}
+		sort.Sort(values)
+		for k, v := range values {
+			fmt.Println("kv:", k, v)
+		}
+		fmt.Println("time now:", time.Now().Unix())
 
-	log.Println(" ------------------------------------------------------")
-}
-
+		log.Println(" ------------------------------------------------------")
+	}
+*/
 func (manager *ConcurrentExpiringPersistentURLMap) NumItems() int { //nolint:ireturn // is ok
 	manager.mut.Lock()
 	defer manager.mut.Unlock()

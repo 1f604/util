@@ -1,7 +1,6 @@
 package util
 
 import (
-	"errors"
 	"fmt"
 	"sync"
 )
@@ -9,7 +8,7 @@ import (
 // keys are strings
 type ConcurrentPermanentMap struct {
 	mut sync.Mutex
-	m   map[string]PermanentMapItem
+	m   MapWithPastesCount[*PermanentMapItem]
 }
 
 type PermanentMapItem struct {
@@ -46,12 +45,19 @@ func (cpm *ConcurrentPermanentMap) NumItems() int {
 	cpm.mut.Lock()
 	defer cpm.mut.Unlock()
 
-	return len(cpm.m)
+	return cpm.m.NumItems()
+}
+
+func (cpm *ConcurrentPermanentMap) NumPastes() int {
+	cpm.mut.Lock()
+	defer cpm.mut.Unlock()
+
+	return cpm.m.NumPastes()
 }
 
 // You can call this on nil receiver
 func (*ConcurrentPermanentMap) BeginConstruction(stored_map_length int64, expiry_callback ExpiryCallback) ConcurrentMap {
-	m := make(map[string]PermanentMapItem, stored_map_length)
+	m := NewMapWithPastesCount[*PermanentMapItem](stored_map_length)
 	return &ConcurrentPermanentMap{
 		mut: sync.Mutex{},
 		m:   m,
@@ -61,10 +67,11 @@ func (*ConcurrentPermanentMap) BeginConstruction(stored_map_length int64, expiry
 // Caller must check that the key_str is not already in the map.
 func (cpm *ConcurrentPermanentMap) ContinueConstruction(key_str string, value_str string, expiry_time int64, item_value_type MapItemValueType) {
 	// just add it to the map
-	cpm.m[string(key_str)] = PermanentMapItem{
+	err := cpm.m.InsertNew(string(key_str), &PermanentMapItem{
 		value:         value_str,
 		itemValueType: item_value_type,
-	}
+	})
+	Check_err(err)
 }
 
 func (cpm *ConcurrentPermanentMap) FinishConstruction() {} // Does nothing.
@@ -75,16 +82,11 @@ func (cpm *ConcurrentPermanentMap) Put_New_Entry(key string, value string, _ int
 	defer cpm.mut.Unlock()
 
 	// if entry already exists, return an error
-	_, ok := cpm.m[key]
-	if ok {
-		return errors.New("Entry already exists!!")
-	}
-
-	cpm.m[key] = PermanentMapItem{
+	err := cpm.m.InsertNew(key, &PermanentMapItem{
 		value:         value,
 		itemValueType: item_value_type,
-	}
-	return nil
+	})
+	return err
 }
 
 func (cpm *ConcurrentPermanentMap) Get_Entry(key string) (MapItem, error) {
@@ -93,20 +95,20 @@ func (cpm *ConcurrentPermanentMap) Get_Entry(key string) (MapItem, error) {
 	defer cpm.mut.Unlock()
 
 	// 2. check if it's in the map
-	map_item, ok := cpm.m[key]
+	item, err := cpm.m.GetKey(key)
 	// If the key doesn't exist
-	if !ok {
+	if err != nil {
 		// return error saying key doesn't exist
 		return nil, CPMNonExistentKeyError{}
 	}
 
-	return &map_item, nil
+	return item, nil
 }
 
 func NewEmptyConcurrentPermanentMap() *ConcurrentPermanentMap {
 	return &ConcurrentPermanentMap{
 		mut: sync.Mutex{},
-		m:   make(map[string]PermanentMapItem),
+		m:   NewMapWithPastesCount[*PermanentMapItem](0),
 	}
 }
 
