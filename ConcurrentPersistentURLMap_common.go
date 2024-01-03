@@ -294,8 +294,8 @@ func LoadStoredRecordsFromDisk(params *LSRFD_Params) (ConcurrentMap, *MapSizeFil
 				if ignore_entry {
 					if map_item_type == TYPE_MAP_ITEM_PASTE {
 						// Try to delete it
-						err = os.Remove(value_str)
-						Check_err(err)
+						// Ignore errors since it might already be deleted
+						_ = os.Remove(value_str)
 					}
 					continue
 				}
