@@ -83,19 +83,6 @@ func (manager *ConcurrentExpiringPersistentURLMap) NumPastes() int { //nolint:ir
 	return manager.map_storage.NumPastes()
 }
 
-type GenericConcurrentPersistentMap interface {
-	GetEntry(short_url string) (MapItem, error)
-	PutEntry(requested_length int, long_url string, expiry_time int64, value_type MapItemValueType) (string, error)
-	NumItems() int
-	NumPastes() int
-}
-
-func type_asserts() {
-	var _ GenericConcurrentPersistentMap = &ConcurrentExpiringPersistentURLMap{}
-
-	var _ GenericConcurrentPersistentMap = &ConcurrentPersistentPermanentURLMap{}
-}
-
 func (manager *ConcurrentExpiringPersistentURLMap) GetEntry(short_url string) (MapItem, error) { //nolint:ireturn // is ok
 	manager.mut.Lock()
 	defer manager.mut.Unlock()
