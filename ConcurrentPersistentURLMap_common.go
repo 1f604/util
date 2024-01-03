@@ -152,7 +152,7 @@ type LSRFD_Params struct {
 	B53m                        *Base53IDManager
 	Log_directory_path_absolute string
 	Size_file_path_absolute     string
-	Entry_should_be_ignored_fn  func(int64) bool
+	Entry_should_be_deleted_fn  func(int64) bool
 	Lss                         LogStructuredStorage
 	Expiry_callback             ExpiryCallback
 	Slice_storage               map[int]*RandomBag64
@@ -169,7 +169,7 @@ func LoadStoredRecordsFromDisk(params *LSRFD_Params) (ConcurrentMap, *MapSizeFil
 		log.Fatal("Failed to open bucket directory:", params.Log_directory_path_absolute, "error:", err)
 		panic(err)
 	}
-	// Now for each file, try to parse the file's filename and load it into the map if it's not expired
+	// Now for each file, try to parse the file's filename and load it into the map, deleting associated files if entry is expired
 	files_to_be_loaded_from := make([]string, 0, len(entries))
 	for _, entry := range entries {
 		if entry.IsDir() { // ignore directories
@@ -286,9 +286,17 @@ func LoadStoredRecordsFromDisk(params *LSRFD_Params) (ConcurrentMap, *MapSizeFil
 				panic(err)
 			}
 
-			if params.Entry_should_be_ignored_fn != nil {
-				ignore_entry := params.Entry_should_be_ignored_fn(timestamp_unix)
+			if params.Entry_should_be_deleted_fn != nil {
+				// If entry is expired AND entry is temporary then delete the paste.
+				// This function being non-nil means we're in the temporary version.
+				// Therefore delete the paste if it's expired.
+				ignore_entry := params.Entry_should_be_deleted_fn(timestamp_unix)
 				if ignore_entry {
+					if map_item_type == TYPE_MAP_ITEM_PASTE {
+						// Try to delete it
+						err = os.Remove(value_str)
+						Check_err(err)
+					}
 					continue
 				}
 			}

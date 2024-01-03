@@ -21,6 +21,7 @@ package util
 import (
 	"container/heap"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 )
@@ -65,7 +66,7 @@ func (emi *ExpiringMapItem) GetType() MapItemType {
 	}
 }
 
-type ExpiryCallback func(string)
+type ExpiryCallback func(string, MapItem)
 
 // keys are strings
 type ConcurrentExpiringMap struct {
@@ -221,7 +222,12 @@ func (cem *ConcurrentExpiringMap) Remove_All_Expired(extra_keeparound_seconds in
 		}
 		// now call the callback with the removed item key
 		if cem.expiry_callback != nil {
-			cem.expiry_callback(item.key)
+			map_item, err := cem.m.GetKey(item.key)
+			if err != nil {
+				log.Fatal("Failed to find key to delete", err)
+				panic(err)
+			}
+			cem.expiry_callback(item.key, map_item)
 		}
 		// then remove from map
 		// fmt.Println("===================================================================================== Removing item:", item.expiry_time_unix, item.key)

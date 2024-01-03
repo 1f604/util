@@ -87,7 +87,7 @@ func CreateConcurrentPersistentPermanentURLMapFromDisk(cppum_params *CPPUMParams
 	params := LSRFD_Params{
 		B53m:                        cppum_params.B53m,
 		Log_directory_path_absolute: cppum_params.Log_directory_path_absolute,
-		Entry_should_be_ignored_fn:  nil,
+		Entry_should_be_deleted_fn:  nil,
 		Lss:                         lsps,
 		Expiry_callback:             nil,
 		Slice_storage:               slice_storage,

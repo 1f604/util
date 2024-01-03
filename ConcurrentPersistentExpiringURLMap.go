@@ -6,6 +6,8 @@
 package util
 
 import (
+	"log"
+	"os"
 	"sync"
 	"time"
 )
@@ -119,7 +121,7 @@ type CEPUMParams struct {
 // This is the one you want to use in production
 func CreateConcurrentExpiringPersistentURLMapFromDisk(cepum_params *CEPUMParams) *ConcurrentExpiringPersistentURLMap {
 	cur_unix_timestamp := time.Now().Unix()
-	entry_should_be_ignored_fn := func(expiry_time int64) bool {
+	Entry_should_be_deleted_fn := func(expiry_time int64) bool {
 		return expiry_time < cur_unix_timestamp
 	}
 	slice_storage := make(map[int]*RandomBag64)
@@ -136,7 +138,7 @@ func CreateConcurrentExpiringPersistentURLMapFromDisk(cepum_params *CEPUMParams)
 	params := LSRFD_Params{
 		B53m:                        cepum_params.B53m,
 		Log_directory_path_absolute: cepum_params.Bucket_directory_path_absolute,
-		Entry_should_be_ignored_fn:  entry_should_be_ignored_fn,
+		Entry_should_be_deleted_fn:  Entry_should_be_deleted_fn,
 		Lss:                         lbses,
 		Expiry_callback:             expiry_callback,
 		Slice_storage:               slice_storage,
@@ -161,6 +163,10 @@ func CreateConcurrentExpiringPersistentURLMapFromDisk(cepum_params *CEPUMParams)
 		map_size_persister:            map_size_persister,
 	}
 
+	// It is very important to ensure that these functions run ONLY AFTER the LoadStoredRecordsFromDisk has finished.
+	// This is because we need to load in the expired entries and delete the associated paste files on startup.
+	//TODO: REmove this line
+	time.Sleep(60 * time.Second)
 	go RunFuncEveryXSeconds(manager.RemoveAllExpiredURLsFromDisk, cepum_params.Expiry_check_interval_seconds_disk)
 	go RunFuncEveryXSeconds(manager.RemoveAllExpiredURLsFromRAM, cepum_params.Expiry_check_interval_seconds_ram)
 	return &manager
@@ -179,14 +185,24 @@ func (manager *ConcurrentExpiringPersistentURLMap) RemoveAllExpiredURLsFromDisk(
 }
 
 // This callback puts the expired short URL ID back into the internal slice so that it can be reused
-func _internal_get_cem_expiry_callback(slice_storage *map[int]*RandomBag64, generate_strings_up_to int) func(string) {
-	return func(url_str string) {
+// It also deletes the associated file on disk if any
+func _internal_get_cem_expiry_callback(slice_storage *map[int]*RandomBag64, generate_strings_up_to int) ExpiryCallback {
+	return func(url_str string, map_item MapItem) {
 		// check length of URL string
 		length := len(url_str)
 		if length <= generate_strings_up_to {
 			// convert string back to uint64
 			uint_num := Convert_str_to_uint64(url_str)
 			(*slice_storage)[length].Push(uint_num)
+		}
+		// delete the associated file on disk
+		if map_item.GetType().ValueType == TYPE_MAP_ITEM_PASTE {
+			absfilepath := map_item.GetValue()
+			err := os.Remove(absfilepath)
+			if err != nil {
+				log.Fatal(err)
+				panic(err)
+			}
 		}
 	}
 }

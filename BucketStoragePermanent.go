@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 )
 
 type PermanentBucketStorage struct {
@@ -53,10 +54,9 @@ func (pbs *PermanentBucketStorage) InsertFile(file_contents []byte, _ int64) str
 	// Now generate a new filename that doesn't already exist
 	// Just generate a random 8-character string, should be good enough
 	var absfilepath string
+	cur_timestamp := time.Now().Unix()
 	for count := 0; count < 10; count++ {
-		rand_string := Crypto_Rand_Alnum_String(8) //nolint:gomnd // 8 characters is more than we need but birthday paradox means that collisions are more likely than they seem...
-		// fmt.Println("Randstring:", rand_string)
-		absfilepath = filepath.Join(pbs.bucket_directory_path_absolute, rand_string)
+		absfilepath = filepath.Join(pbs.bucket_directory_path_absolute, GetPasteFileName_Common("created_at_", file_contents, cur_timestamp))
 		// Check if file already exists
 		f, err := os.OpenFile(absfilepath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
 		// If file already exists try again

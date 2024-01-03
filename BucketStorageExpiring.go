@@ -10,6 +10,8 @@
 package util
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
@@ -17,7 +19,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"sync"
-	"time"
 )
 
 type ExpiringBucketStorage struct {
@@ -54,32 +55,31 @@ func NewExpiringBucketStorage(bucket_interval int64, bucket_directory_path_absol
 	}
 }
 
+func GetPasteFileName_Common(prefix string, file_contents []byte, timestamp int64) string {
+	// we use sha1 to detect corruption because it's fast - 16 bytes is enough.
+	hash_bytes := sha1.Sum(file_contents)
+	// convert hash to printable string
+	hex_sha1 := hex.EncodeToString(hash_bytes[:])[:8]
+	rand_string := Crypto_Rand_Alnum_String(8) //nolint:gomnd // 8 characters is more than we need but birthday paradox means that collisions are more likely than they seem...
+
+	return prefix + Int64_to_string(timestamp) + "_sha1_" + hex_sha1 + "_rand_" + rand_string
+}
+
 // Adds a new entry to the log file
 //
 // Also important: Make sure the input does not contain carriage return or newline.
 func (ebs *ExpiringBucketStorage) InsertFile(file_contents []byte, expiry_time int64) string {
 	ebs.mut.Lock()
 	defer ebs.mut.Unlock()
-	// Don't check expiry time. Just put it into an already expired directory.
-
-	// Find the corresponding bucket number. This should always succeed
-	corresponding_bucket_timestamp := ((expiry_time / ebs.bucket_interval) + 1) * ebs.bucket_interval
-	bucket_path := filepath.Join(ebs.bucket_directory_path_absolute, Int64_to_string(corresponding_bucket_timestamp)) + "/"
-
-	// Create the directory if it doesn't exist
-	err := os.MkdirAll(bucket_path, os.ModePerm)
-	if err != nil {
-		log.Fatal(err)
-		panic(err)
-	}
+	// Don't check expiry time. Just put it.
+	// Compute md5 hash of file
+	// we use md5 to detect corruption - 16 bytes is enough.
 
 	// Now generate a new filename that doesn't already exist
 	// Just generate a random 8-character string, should be good enough
 	var absfilepath string
 	for count := 0; count < 10; count++ {
-		rand_string := Crypto_Rand_Alnum_String(8) //nolint:gomnd // 8 characters is more than we need but birthday paradox means that collisions are more likely than they seem...
-		// fmt.Println("Randstring:", rand_string)
-		absfilepath = filepath.Join(bucket_path, rand_string)
+		absfilepath = filepath.Join(ebs.bucket_directory_path_absolute, GetPasteFileName_Common("expires_at_", file_contents, expiry_time))
 		// Check if file already exists
 		f, err := os.OpenFile(absfilepath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
 		// If file already exists try again
@@ -124,6 +124,8 @@ func parse_bucket_filename_to_timestamp(filename string) (int64, error) {
 
 // Delete expired buckets (directories)
 // extra_keeparound_seconds_disk defines how long to keep around buckets after they expired
+// Redundant: You should never need to use this function if you're using CEPUM
+/* It wont'work now anyway.
 func (ebs *ExpiringBucketStorage) DeleteExpiredBuckets() {
 	ebs.mut.Lock()
 	defer ebs.mut.Unlock()
@@ -158,3 +160,4 @@ func (ebs *ExpiringBucketStorage) DeleteExpiredBuckets() {
 		}
 	}
 }
+*/

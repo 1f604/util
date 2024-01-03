@@ -144,7 +144,7 @@ func Test_ConcurrentExpiringMap_Expiry_Callback(t *testing.T) {
 
 	outer := []string{}
 
-	expiry_callback := func(item string) {
+	expiry_callback := func(item string, _ util.MapItem) {
 		outer = append(outer, item)
 	}
 	fmt.Println("outer begin:", outer)
