@@ -166,7 +166,7 @@ func CreateConcurrentExpiringPersistentURLMapFromDisk(cepum_params *CEPUMParams)
 	// It is very important to ensure that these functions run ONLY AFTER the LoadStoredRecordsFromDisk has finished.
 	// This is because we need to load in the expired entries and delete the associated paste files on startup.
 	//TODO: REmove this line
-	time.Sleep(60 * time.Second)
+	//time.Sleep(60 * time.Second)
 	go RunFuncEveryXSeconds(manager.RemoveAllExpiredURLsFromDisk, cepum_params.Expiry_check_interval_seconds_disk)
 	go RunFuncEveryXSeconds(manager.RemoveAllExpiredURLsFromRAM, cepum_params.Expiry_check_interval_seconds_ram)
 	return &manager
