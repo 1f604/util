@@ -37,6 +37,7 @@ type ConcurrentMap interface {
 	ContinueConstruction(string, string, int64, MapItemValueType)
 	FinishConstruction()
 	NumItems() int
+	NumPastes() int
 }
 
 type URLMap interface {
