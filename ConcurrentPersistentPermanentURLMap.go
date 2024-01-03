@@ -77,7 +77,7 @@ type CPPUMParams struct {
 }
 
 // This is the one you want to use in production
-func CreateConcurrentPersistentPermanentURLMapFromDisk(cppum_params *CPPUMParams) GenericConcurrentPersistentMap {
+func CreateConcurrentPersistentPermanentURLMapFromDisk(cppum_params *CPPUMParams) *ConcurrentPersistentPermanentURLMap {
 	slice_storage := make(map[int]*RandomBag64)
 	lsps := NewLogStructuredPermanentStorage(cppum_params.Log_file_max_size_bytes, cppum_params.Log_directory_path_absolute)
 	pbs := NewPermanentBucketStorage(cppum_params.Bucket_directory_path_absolute)

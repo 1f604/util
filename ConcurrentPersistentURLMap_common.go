@@ -338,3 +338,16 @@ func LoadStoredRecordsFromDisk(params *LSRFD_Params) (ConcurrentMap, *MapSizeFil
 	map_size_persister.UpdateMapSizeRounded(int64(concurrent_map.NumItems()))
 	return concurrent_map, map_size_persister
 }
+
+type GenericConcurrentPersistentMap interface {
+	GetEntry(short_url string) (MapItem, error)
+	PutEntry(requested_length int, long_url string, expiry_time int64, value_type MapItemValueType) (string, error)
+	NumItems() int
+	NumPastes() int
+}
+
+func type_asserts() {
+	var _ GenericConcurrentPersistentMap = &ConcurrentExpiringPersistentURLMap{}
+
+	var _ GenericConcurrentPersistentMap = &ConcurrentPersistentPermanentURLMap{}
+}

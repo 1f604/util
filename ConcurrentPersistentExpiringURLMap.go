@@ -90,6 +90,12 @@ type GenericConcurrentPersistentMap interface {
 	NumPastes() int
 }
 
+func type_asserts() {
+	var _ GenericConcurrentPersistentMap = &ConcurrentExpiringPersistentURLMap{}
+
+	var _ GenericConcurrentPersistentMap = &ConcurrentPersistentPermanentURLMap{}
+}
+
 func (manager *ConcurrentExpiringPersistentURLMap) GetEntry(short_url string) (MapItem, error) { //nolint:ireturn // is ok
 	manager.mut.Lock()
 	defer manager.mut.Unlock()
@@ -124,7 +130,7 @@ type CEPUMParams struct {
 }
 
 // This is the one you want to use in production
-func CreateConcurrentExpiringPersistentURLMapFromDisk(cepum_params *CEPUMParams) GenericConcurrentPersistentMap {
+func CreateConcurrentExpiringPersistentURLMapFromDisk(cepum_params *CEPUMParams) *ConcurrentExpiringPersistentURLMap {
 	cur_unix_timestamp := time.Now().Unix()
 	entry_should_be_ignored_fn := func(expiry_time int64) bool {
 		return expiry_time < cur_unix_timestamp
