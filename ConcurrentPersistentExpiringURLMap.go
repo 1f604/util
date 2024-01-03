@@ -23,6 +23,7 @@ type ConcurrentExpiringPersistentURLMap struct {
 	extra_keeparound_seconds_ram  int64
 	extra_keeparound_seconds_disk int64
 	map_size_persister            *MapSizeFileManager
+	xattr_params                  *XattrParams
 }
 
 type MapItem2 struct {
@@ -98,7 +99,8 @@ func (manager *ConcurrentExpiringPersistentURLMap) PutEntry(requested_length int
 	manager.mut.Lock()
 	defer manager.mut.Unlock()
 
-	val, err := PutEntry_Common(requested_length, long_url, value_type, expiry_time, manager.generate_strings_up_to, manager.slice_storage, manager.map_storage, manager.b53m, manager.lbses, manager.ebs, manager.map_size_persister)
+	val, err := PutEntry_Common(requested_length, long_url, value_type, expiry_time, manager.generate_strings_up_to, manager.slice_storage,
+		manager.map_storage, manager.b53m, manager.lbses, manager.ebs, manager.map_size_persister, manager.xattr_params)
 	return val, err
 }
 
@@ -116,10 +118,16 @@ type CEPUMParams struct {
 	B53m                                 *Base53IDManager
 	Size_file_rounded_multiple           int64
 	Generate_strings_up_to               int
+	Xattr_params                         *XattrParams
 }
 
 // This is the one you want to use in production
 func CreateConcurrentExpiringPersistentURLMapFromDisk(cepum_params *CEPUMParams) *ConcurrentExpiringPersistentURLMap {
+	if !(cepum_params.Extra_keeparound_seconds_disk > (cepum_params.Extra_keeparound_seconds_ram+5)*2) {
+		log.Fatal("Extra keep around seconds disk must be much greater than ram!")
+		panic("Invalid config")
+	}
+
 	cur_unix_timestamp := time.Now().Unix()
 	Entry_should_be_deleted_fn := func(expiry_time int64) bool {
 		return expiry_time < cur_unix_timestamp
@@ -161,6 +169,7 @@ func CreateConcurrentExpiringPersistentURLMapFromDisk(cepum_params *CEPUMParams)
 		extra_keeparound_seconds_disk: cepum_params.Extra_keeparound_seconds_disk,
 		generate_strings_up_to:        cepum_params.Generate_strings_up_to,
 		map_size_persister:            map_size_persister,
+		xattr_params:                  cepum_params.Xattr_params,
 	}
 
 	// It is very important to ensure that these functions run ONLY AFTER the LoadStoredRecordsFromDisk has finished.

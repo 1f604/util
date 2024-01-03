@@ -58,13 +58,20 @@ func GetEntryCommon(cm ConcurrentMap, short_url string) (MapItem, error) {
 	return val, err
 }
 
+type XattrParams struct {
+	SetXattr   bool
+	XattrName  string
+	Xattrvalue string
+}
+
 type PasteStorage interface {
-	InsertFile([]byte, int64) string
+	InsertFile([]byte, int64, *XattrParams) string
 }
 
 // Shorten long URL into short URL and return the short URL and store the entry both in map and on disk
 func PutEntry_Common(requested_length int, long_url string, value_type MapItemValueType, timestamp int64, generate_strings_up_to int,
-	slice_storage map[int]*RandomBag64, urlmap URLMap, b53m *Base53IDManager, log_storage LogStorage, paste_storage PasteStorage, map_size_persister *MapSizeFileManager) (string, error) {
+	slice_storage map[int]*RandomBag64, urlmap URLMap, b53m *Base53IDManager, log_storage LogStorage, paste_storage PasteStorage, map_size_persister *MapSizeFileManager,
+	xattr_params *XattrParams) (string, error) {
 	if requested_length < 2 { //nolint:gomnd // 2 is not magic here. BASE53 can only go down to 2 characters because it uses one character for the checksum
 		return "", errors.New("Requested length is too small.")
 	}
@@ -90,7 +97,7 @@ func PutEntry_Common(requested_length int, long_url string, value_type MapItemVa
 		// If it's a paste, first add it to bucket storage before adding it into map
 		// This is a little bit hacky because we're using long_url as paste_data and then using the directory path as the long URL...
 		if value_type == TYPE_MAP_ITEM_PASTE {
-			long_url = paste_storage.InsertFile([]byte(long_url), timestamp)
+			long_url = paste_storage.InsertFile([]byte(long_url), timestamp, xattr_params)
 		}
 
 		err = urlmap.Put_New_Entry(result_str, long_url, timestamp, value_type)
@@ -106,7 +113,7 @@ func PutEntry_Common(requested_length int, long_url string, value_type MapItemVa
 		// If it's a paste, first add it to bucket storage before adding it into map
 		// This is a little bit hacky because we're using long_url as paste_data and then using the directory path as the long URL...
 		if value_type == TYPE_MAP_ITEM_PASTE {
-			long_url = paste_storage.InsertFile([]byte(long_url), timestamp)
+			long_url = paste_storage.InsertFile([]byte(long_url), timestamp, xattr_params)
 		}
 
 		for i := 0; i < 100; i++ {

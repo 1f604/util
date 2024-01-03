@@ -15,6 +15,8 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	"golang.org/x/sys/unix"
 )
 
 type PermanentBucketStorage struct {
@@ -48,7 +50,7 @@ func NewPermanentBucketStorage(bucket_directory_path_absolute string) *Permanent
 	}
 }
 
-func (pbs *PermanentBucketStorage) InsertFile(file_contents []byte, _ int64) string {
+func (pbs *PermanentBucketStorage) InsertFile(file_contents []byte, _ int64, xattr_params *XattrParams) string {
 	pbs.mut.Lock()
 	defer pbs.mut.Unlock()
 
@@ -70,6 +72,13 @@ func (pbs *PermanentBucketStorage) InsertFile(file_contents []byte, _ int64) str
 			if err = f.Close(); err != nil {
 				log.Fatal(err)
 				panic(err)
+			}
+			if xattr_params.SetXattr {
+				err = unix.Setxattr(absfilepath, xattr_params.XattrName, []byte(xattr_params.Xattrvalue), 0)
+				if err != nil {
+					log.Fatal(err)
+					panic(err)
+				}
 			}
 			return absfilepath
 		}

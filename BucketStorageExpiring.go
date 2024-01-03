@@ -19,6 +19,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"sync"
+
+	"golang.org/x/sys/unix"
 )
 
 type ExpiringBucketStorage struct {
@@ -69,7 +71,7 @@ func GetPasteFileName_Common(prefix string, file_contents []byte, timestamp int6
 // Adds a new entry to the log file
 //
 // Also important: Make sure the input does not contain carriage return or newline.
-func (ebs *ExpiringBucketStorage) InsertFile(file_contents []byte, expiry_time int64) string {
+func (ebs *ExpiringBucketStorage) InsertFile(file_contents []byte, expiry_time int64, xattr_params *XattrParams) string {
 	ebs.mut.Lock()
 	defer ebs.mut.Unlock()
 	// Don't check expiry time. Just put it.
@@ -93,6 +95,13 @@ func (ebs *ExpiringBucketStorage) InsertFile(file_contents []byte, expiry_time i
 			if err = f.Close(); err != nil {
 				log.Fatal(err)
 				panic(err)
+			}
+			if xattr_params.SetXattr {
+				err = unix.Setxattr(absfilepath, xattr_params.XattrName, []byte(xattr_params.Xattrvalue), 0)
+				if err != nil {
+					log.Fatal(err)
+					panic(err)
+				}
 			}
 			return absfilepath
 		}

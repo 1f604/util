@@ -20,6 +20,7 @@ type ConcurrentPersistentPermanentURLMap struct {
 	pbs                    *PermanentBucketStorage
 	generate_strings_up_to int
 	map_size_persister     *MapSizeFileManager
+	xattr_params           *XattrParams
 }
 
 func (manager *ConcurrentPersistentPermanentURLMap) PrintInternalState() {
@@ -62,7 +63,8 @@ func (manager *ConcurrentPersistentPermanentURLMap) PutEntry(requested_length in
 
 	cur_unix_timestamp := time.Now().Unix()
 
-	val, err := PutEntry_Common(requested_length, long_url, value_type, cur_unix_timestamp, manager.generate_strings_up_to, manager.slice_map, manager.urlmap, manager.b53m, manager.lsps, manager.pbs, manager.map_size_persister)
+	val, err := PutEntry_Common(requested_length, long_url, value_type, cur_unix_timestamp, manager.generate_strings_up_to, manager.slice_map, manager.urlmap,
+		manager.b53m, manager.lsps, manager.pbs, manager.map_size_persister, manager.xattr_params)
 	return val, err
 }
 
@@ -74,6 +76,7 @@ type CPPUMParams struct {
 	Log_file_max_size_bytes        int64
 	Size_file_rounded_multiple     int64
 	Size_file_path_absolute        string
+	Xattr_params                   *XattrParams
 }
 
 // This is the one you want to use in production
