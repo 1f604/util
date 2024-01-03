@@ -42,6 +42,11 @@ func (manager *ConcurrentPersistentPermanentURLMap) NumItems() int { //nolint:ir
 	return manager.urlmap.NumItems()
 }
 
+func (manager *ConcurrentPersistentPermanentURLMap) NumPastes() int { //nolint:ireturn // is ok
+	// No need for lock here.
+	return manager.urlmap.NumPastes()
+}
+
 func (manager *ConcurrentPersistentPermanentURLMap) GetEntry(short_url string) (MapItem, error) { //nolint:ireturn //this is ok
 	manager.mut.Lock()
 	defer manager.mut.Unlock()
@@ -72,7 +77,7 @@ type CPPUMParams struct {
 }
 
 // This is the one you want to use in production
-func CreateConcurrentPersistentPermanentURLMapFromDisk(cppum_params *CPPUMParams) *ConcurrentPersistentPermanentURLMap {
+func CreateConcurrentPersistentPermanentURLMapFromDisk(cppum_params *CPPUMParams) GenericConcurrentPersistentMap {
 	slice_storage := make(map[int]*RandomBag64)
 	lsps := NewLogStructuredPermanentStorage(cppum_params.Log_file_max_size_bytes, cppum_params.Log_directory_path_absolute)
 	pbs := NewPermanentBucketStorage(cppum_params.Bucket_directory_path_absolute)
