@@ -3,7 +3,7 @@ module github.com/1f604/util
 go 1.21 // because we're using min
 
 require (
-	golang.org/x/crypto v0.16.0
+	golang.org/x/crypto v0.17.0
 	golang.org/x/sys v0.15.0
 )
 
