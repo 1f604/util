@@ -110,7 +110,6 @@ type CEPUMParams struct {
 	Extra_keeparound_seconds_ram         int64
 	Extra_keeparound_seconds_disk        int64
 	Bucket_interval                      int64
-	Paste_bucket_interval                int64
 	Bucket_directory_path_absolute       string
 	Paste_bucket_directory_path_absolute string
 	Size_file_path_absolute              string
@@ -135,7 +134,7 @@ func CreateConcurrentExpiringPersistentURLMapFromDisk(cepum_params *CEPUMParams)
 	expiry_callback := _internal_get_cem_expiry_callback(&slice_storage, cepum_params.Generate_strings_up_to) // this won't get called until much later so it's okay...
 
 	lbses := NewLogBucketStructuredExpiringStorage(cepum_params.Bucket_interval, cepum_params.Bucket_directory_path_absolute)
-	ebs := NewExpiringBucketStorage(cepum_params.Paste_bucket_interval, cepum_params.Paste_bucket_directory_path_absolute)
+	ebs := NewExpiringBucketStorage(cepum_params.Paste_bucket_directory_path_absolute)
 	// delete expired log files on startup
 	lbses.DeleteExpiredLogFiles(cepum_params.Extra_keeparound_seconds_disk)
 
