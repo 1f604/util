@@ -6,7 +6,8 @@ import (
 	"strconv"
 )
 
-func Check_no_other_instances_running(socket_addr string) {
+// Users MUST keep a reference to the returned listener to ensure it does not get garbage-collected!!!
+func Check_no_other_instances_running(socket_addr string) net.Listener {
 	/*  This implementation uses Linux abstract domain sockets, which is a Linux-specific feature.
 
 	    A cross-platform approach would be to use TCP sockets instead, but that uses an entire TCP port, which is a limited resource.
@@ -17,10 +18,11 @@ func Check_no_other_instances_running(socket_addr string) {
 		For a discussion of the problems with pidfiles see this:
 			https://stackoverflow.com/questions/25906020/are-pid-files-still-flawed-when-doing-it-right
 	*/
-	_, err := net.Listen("unix", socket_addr)
+	l, err := net.Listen("unix", socket_addr)
 	if err != nil {
 		log.Fatal("Error: another instance of this program is already running.")
 	}
+	return l
 }
 
 // https://rosettacode.org/wiki/Determine_if_only_one_instance_is_running#Port
