@@ -7,6 +7,7 @@ import (
 )
 
 // Users MUST keep a reference to the returned listener to ensure it does not get garbage-collected!!!
+// This caveat applies regardless of whether you're using TCP, Unix, or some other socket!!
 func Check_no_other_instances_running(socket_addr string) net.Listener {
 	/*  This implementation uses Linux abstract domain sockets, which is a Linux-specific feature.
 
